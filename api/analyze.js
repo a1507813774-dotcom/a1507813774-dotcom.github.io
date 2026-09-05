@@ -1,5 +1,3 @@
-import { generateText } from 'ai';
-
 function cors(req, res) {
   const origin = req.headers.origin || '';
   const allowed = ['https://a1507813774-dotcom.github.io'];
@@ -11,11 +9,22 @@ function cors(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Analyze-Token');
 }
 
+function parseDataUrl(dataUrl) {
+  const match = /^data:([^;]+);base64,(.+)$/s.exec(dataUrl || '');
+  if (!match) return null;
+  return { mimeType: match[1], data: match[2] };
+}
+
 export default async function handler(req, res) {
   cors(req, res);
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Server GEMINI_API_KEY is not configured' });
+  }
 
   const requiredToken = process.env.ANALYZE_TOKEN;
   if (requiredToken) {
@@ -27,46 +36,61 @@ export default async function handler(req, res) {
 
   try {
     const { image, prompt } = req.body || {};
-    if (typeof image !== 'string' || !image.startsWith('data:image/')) {
+    const parsed = parseDataUrl(image);
+    if (!parsed || !parsed.mimeType.startsWith('image/')) {
       return res.status(400).json({ error: 'A base64 image data URL is required' });
     }
     if (image.length > 7_000_000) {
       return res.status(413).json({ error: 'Image is too large' });
     }
 
-    const match = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
-    if (!match) {
-      return res.status(400).json({ error: 'Invalid base64 image data URL' });
-    }
-
-    const mediaType = match[1];
-    const imageBytes = Buffer.from(match[2], 'base64');
     const instruction = typeof prompt === 'string' && prompt.trim()
       ? prompt.trim()
       : '请简洁描述这张图片中最重要、最值得注意的信息。';
 
-    const model = process.env.AI_VISION_MODEL || 'openai/gpt-4.1-mini';
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
-    const result = await generateText({
-      model,
-      messages: [
-        {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify({
+        contents: [{
           role: 'user',
-          content: [
-            { type: 'text', text: instruction },
-            { type: 'image', image: imageBytes, mediaType }
+          parts: [
+            { inline_data: { mime_type: parsed.mimeType, data: parsed.data } },
+            { text: instruction }
           ]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 500
         }
-      ],
-      maxOutputTokens: 600
+      })
     });
 
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = data?.error?.message || `Gemini API HTTP ${response.status}`;
+      return res.status(response.status).json({ error: message });
+    }
+
+    const text = (data?.candidates?.[0]?.content?.parts || [])
+      .map(part => part?.text || '')
+      .join('')
+      .trim();
+
     return res.status(200).json({
-      text: result.text || '',
+      text: text || 'Gemini 没有返回文字结果',
       model
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: err?.message || 'AI analysis failed' });
+    return res.status(500).json({
+      error: err?.message || 'Gemini analysis failed'
+    });
   }
 }
