@@ -1,3 +1,4 @@
+// Deployment refresh: Gemini direct API backend
 function cors(req, res) {
   const origin = req.headers.origin || '';
   const allowed = ['https://a1507813774-dotcom.github.io'];
