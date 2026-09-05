@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       ? prompt.trim()
       : '请简洁描述这张图片中最重要、最值得注意的信息。';
 
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
     const response = await fetch(url, {
