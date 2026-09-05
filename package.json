@@ -1,0 +1,8 @@
+{
+  "name": "camera-ai-analyzer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "openai": "^5.20.0"
+  }
+}
