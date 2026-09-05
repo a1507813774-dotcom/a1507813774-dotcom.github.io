@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>每5秒自动拍照</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0f14;color:#fff;font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:760px;margin:auto;padding:16px}.title{font-size:25px;font-weight:800;margin:4px 0}.sub{color:#9aa7b7;font-size:14px;line-height:1.55;margin:8px 0 14px}.card{background:#121821;border:1px solid #263140;border-radius:18px;overflow:hidden}.preview{position:relative;background:#000;aspect-ratio:3/4;max-height:68vh}.preview video{width:100%;height:100%;object-fit:cover}.badge{position:absolute;top:12px;left:12px;background:#000b;padding:8px 10px;border-radius:12px;font-size:13px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#777;margin-right:7px}.running .dot{background:#38d47a}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}.stat{background:#0e141c;border:1px solid #263140;border-radius:13px;text-align:center;padding:10px}.num{font-size:20px;font-weight:800}.lab{font-size:12px;color:#9aa7b7}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}button{border:0;border-radius:13px;padding:14px 10px;font-size:16px;font-weight:700;background:#273241;color:#fff}button.primary{background:#2389ff}button.stop{background:#7a2529}button:disabled{opacity:.45}.full{grid-column:1/-1}.notice{margin-top:12px;padding:12px;border:1px solid #263140;border-radius:14px;color:#aab4c2;font-size:13px;line-height:1.55}.galleryHead{display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px}.galleryHead h2{font-size:18px;margin:0}.small{padding:8px 10px;font-size:13px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.shot{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:1px solid #263140;background:#111923}.shot img{width:100%;height:100%;object-fit:cover}.time{position:absolute;bottom:0;left:0;right:0;font-size:10px;padding:18px 5px 5px;background:linear-gradient(transparent,#000d)}.empty{grid-column:1/-1;color:#9aa7b7;text-align:center;padding:28px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}canvas{display:none}@media(min-width:700px){.preview{aspect-ratio:16/10}.grid{grid-template-columns:repeat(5,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="title">每5秒自动拍照</div>
+<div class="sub">点击“开始自动拍照”后授权摄像头。第一张会立即拍摄，之后每5秒拍一张。照片保存在当前手机浏览器本地，不会上传服务器。</div>
+<section class="card" id="card">
+<div class="preview"><video id="video" autoplay muted playsinline></video><div class="badge"><span class="dot"></span><span id="status">未启动</span></div></div>
+<div class="stats"><div class="stat"><div class="num" id="count">0</div><div class="lab">本次拍摄</div></div><div class="stat"><div class="num" id="countdown">—</div><div class="lab">下张倒计时</div></div><div class="stat"><div class="num" id="stored">0</div><div class="lab">本地照片</div></div></div>
+<div class="buttons"><button class="primary" id="start">开始自动拍照</button><button class="stop" id="stop" disabled>停止</button><button class="full" id="switch" disabled>切换前 / 后摄像头</button></div>
+</section>
+<div class="row"><button id="wake">保持屏幕常亮</button><button id="clear">清空本地照片</button></div>
+<div class="notice"><b>注意：</b>手机锁屏或浏览器退到后台时，Android 可能暂停网页定时器，因此连续拍摄时请保持页面在前台并尽量开启屏幕常亮。</div>
+<div class="galleryHead"><h2>本地照片</h2><button class="small" id="refresh">刷新</button></div>
+<div class="grid" id="gallery"><div class="empty">还没有照片</div></div>
+<canvas id="canvas"></canvas>
+</div>
+<script>
+(()=>{
+const GAP=5000,DB='auto-camera-local',STORE='photos';
+const v=document.getElementById('video'),c=document.getElementById('canvas'),x=c.getContext('2d'),status=document.getElementById('status'),card=document.getElementById('card'),count=document.getElementById('count'),cd=document.getElementById('countdown'),stored=document.getElementById('stored'),gallery=document.getElementById('gallery');
+let stream=null,timer=null,tick=null,running=false,n=0,facing='environment',next=0,wakeLock=null;
+const setStatus=(s,on=false)=>{status.textContent=s;card.classList.toggle('running',on)};
+function db(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function save(blob){const d=await db();await new Promise((res,rej)=>{const t=d.transaction(STORE,'readwrite');t.objectStore(STORE).add({created:Date.now(),blob});t.oncomplete=res;t.onerror=()=>rej(t.error)});d.close()}
+async function all(){const d=await db();const a=await new Promise((res,rej)=>{const r=d.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)});d.close();return a.sort((a,b)=>b.created-a.created)}
+async function render(){const a=await all();stored.textContent=a.length;gallery.innerHTML='';if(!a.length){gallery.innerHTML='<div class="empty">还没有照片</div>';return}a.slice(0,60).forEach(p=>{const u=URL.createObjectURL(p.blob),d=document.createElement('div'),i=document.createElement('img'),t=document.createElement('div');d.className='shot';i.src=u;i.loading='lazy';t.className='time';t.textContent=new Date(p.created).toLocaleString('zh-CN',{hour12:false});d.append(i,t);d.onclick=()=>{const a=document.createElement('a');a.href=u;a.download='photo_'+p.created+'.jpg';a.click()};gallery.appendChild(d)})}
+async function openCam(){if(!navigator.mediaDevices?.getUserMedia)throw new Error('浏览器不支持摄像头');if(stream)stream.getTracks().forEach(t=>t.stop());setStatus('正在请求摄像头权限…');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});v.srcObject=stream;await v.play();document.getElementById('switch').disabled=false}
+async function shot(){if(!stream||v.readyState<2)return;const w=v.videoWidth,h=v.videoHeight;if(!w||!h)return;const m=1600,s=Math.min(1,m/Math.max(w,h));c.width=Math.round(w*s);c.height=Math.round(h*s);x.drawImage(v,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.82));if(!b)return;await save(b);n++;count.textContent=n;await render()}
+function timers(){next=Date.now();const go=async()=>{if(!running)return;try{await shot()}catch(e){setStatus('保存失败：'+e.message,true)}next=Date.now()+GAP;timer=setTimeout(go,GAP)};go();tick=setInterval(()=>{if(running)cd.textContent=Math.max(0,Math.ceil((next-Date.now())/1000))+'s'},250)}
+async function start(){try{await openCam();running=true;n=0;count.textContent=0;document.getElementById('start').disabled=true;document.getElementById('stop').disabled=false;setStatus('正在自动拍摄',true);timers()}catch(e){setStatus('无法启动：'+e.message);alert('无法使用摄像头，请允许浏览器访问摄像头。')}}
+function stop(){running=false;clearTimeout(timer);clearInterval(tick);cd.textContent='—';if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;v.srcObject=null}document.getElementById('start').disabled=false;document.getElementById('stop').disabled=true;document.getElementById('switch').disabled=true;setStatus('已停止')}
+document.getElementById('start').onclick=start;document.getElementById('stop').onclick=stop;document.getElementById('switch').onclick=async()=>{facing=facing==='environment'?'user':'environment';try{await openCam();if(running)setStatus('正在自动拍摄',true)}catch(e){alert('切换摄像头失败')}};document.getElementById('refresh').onclick=render;document.getElementById('clear').onclick=async()=>{if(confirm('确定清空全部本地照片吗？')){const d=await db();await new Promise((res,rej)=>{const t=d.transaction(STORE,'readwrite');t.objectStore(STORE).clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});d.close();render()}};document.getElementById('wake').onclick=async()=>{try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen');alert('已开启屏幕常亮')}else alert('当前浏览器不支持屏幕常亮')}catch(e){alert('开启失败：'+e.message)}};document.addEventListener('visibilitychange',()=>{if(running)setStatus(document.hidden?'页面在后台，系统可能暂停拍摄':'正在自动拍摄',true)});render().catch(()=>{});
+})();
+</script>
+</body>
+</html>
