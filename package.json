@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "openai": "^5.20.0"
+    "ai": "^5.0.0"
   }
 }
