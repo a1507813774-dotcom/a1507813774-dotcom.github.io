@@ -1,12 +1,8 @@
 import OpenAI from 'openai';
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 function cors(req, res) {
   const origin = req.headers.origin || '';
-  const allowed = [
-    'https://a1507813774-dotcom.github.io'
-  ];
+  const allowed = ['https://a1507813774-dotcom.github.io'];
   if (origin && (allowed.includes(origin) || origin.endsWith('.vercel.app'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
@@ -21,8 +17,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'Server OPENAI_API_KEY is not configured' });
+  const gatewayToken = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+  if (!gatewayToken) {
+    return res.status(500).json({ error: 'Vercel AI Gateway authentication is unavailable' });
   }
 
   const requiredToken = process.env.ANALYZE_TOKEN;
@@ -46,7 +43,11 @@ export default async function handler(req, res) {
       ? prompt.trim()
       : '请简洁描述这张图片中最重要、最值得注意的信息。';
 
-    const model = process.env.OPENAI_VISION_MODEL || 'gpt-5.6-luna';
+    const model = process.env.AI_VISION_MODEL || 'openai/gpt-4.1-mini';
+    const client = new OpenAI({
+      apiKey: gatewayToken,
+      baseURL: 'https://ai-gateway.vercel.sh/v1'
+    });
 
     const response = await client.responses.create({
       model,
@@ -55,7 +56,11 @@ export default async function handler(req, res) {
           role: 'user',
           content: [
             { type: 'input_text', text: instruction },
-            { type: 'input_image', image_url: image, detail: ['low','high','auto'].includes(detail) ? detail : 'low' }
+            {
+              type: 'input_image',
+              image_url: image,
+              detail: ['low', 'high', 'auto'].includes(detail) ? detail : 'low'
+            }
           ]
         }
       ],
