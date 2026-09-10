@@ -1,0 +1,1 @@
+Branch2 v2.2 is deployed from main through the existing Vercel integration. The previous v2.1 files remain unchanged and accessible separately.
