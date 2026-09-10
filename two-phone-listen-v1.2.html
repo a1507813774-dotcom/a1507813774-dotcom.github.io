@@ -1,0 +1,39 @@
+<!--
+项目：双手机 AI 视觉语音中继测试
+页面：手机 B（接收 / 语音播报）
+作用：手机 B 不拍照、不调用 Gemini；仅接收手机 A 的 AI 识别结果并朗读。
+版本：v1.2-two-phone-voice
+修改日期：2026-09-10
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>手机B：接收并朗读 AI 结果</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0f14;color:white;font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:680px;margin:auto;padding:18px}h1{font-size:24px;margin:4px 0 8px}.sub{color:#9aa7b7;line-height:1.55;font-size:14px}.card{background:#121821;border:1px solid #263140;border-radius:18px;padding:14px;margin-top:14px}label{display:block;color:#cbd4df;font-size:13px;margin-bottom:6px}input{width:100%;border:1px solid #334154;background:#0c1219;color:white;border-radius:11px;padding:11px 12px;font-size:14px}button{width:100%;border:0;border-radius:12px;padding:14px 10px;font-size:16px;font-weight:700;background:#2389ff;color:white;margin-top:10px}button.stop{background:#7a2529}.status{margin-top:10px;color:#9aa7b7;font-size:13px;white-space:pre-wrap}.result{margin-top:12px;background:#0c1219;border:1px solid #263140;border-radius:12px;padding:14px;min-height:120px;line-height:1.6;white-space:pre-wrap}.code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#777;margin-right:7px}.live .dot{background:#38d47a}.small{font-size:12px;color:#9aa7b7;line-height:1.55;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>手机 B：只负责说话</h1>
+<div class="sub">这台手机不调用摄像头，也不调用 Gemini。它只接收手机 A 发来的识别结果，然后用本机扬声器朗读。</div>
+<section class="card" id="card"><label for="room">配对码</label><input id="room" class="code" autocomplete="off"><button id="listen">启动接收并开启语音</button><button id="stop" class="stop" disabled>停止接收</button><div class="status" id="status"><span class="dot"></span>尚未连接</div><div class="small">先在这台手机上点一次“启动接收并开启语音”，再让手机 A 拍照。浏览器要求这次点击来允许后续自动朗读。</div></section>
+<section class="card"><b>最近收到的 AI 结果</b><div class="result" id="result">等待手机 A…</div></section>
+</div>
+<script>
+(()=>{
+const NTFY_BASE='https://ntfy.sh',roomEl=document.getElementById('room'),statusEl=document.getElementById('status'),resultEl=document.getElementById('result'),card=document.getElementById('card'),listenBtn=document.getElementById('listen'),stopBtn=document.getElementById('stop');
+let es=null,voiceReady=false,lastId='';
+function sanitizeRoom(s){return(s||'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,64)}
+function chooseChineseVoice(){const voices=speechSynthesis.getVoices();return voices.find(v=>/^zh-CN/i.test(v.lang))||voices.find(v=>/^zh/i.test(v.lang))||null}
+function speak(text){if(!voiceReady||!('speechSynthesis'in window)||!text)return;const clean=String(text).replace(/[*#`_>]/g,' ').replace(/\s+/g,' ').trim();if(!clean)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(clean);u.lang='zh-CN';u.rate=1;u.pitch=1;const voice=chooseChineseVoice();if(voice)u.voice=voice;u.onstart=()=>statusEl.innerHTML='<span class="dot"></span>正在朗读';u.onend=()=>statusEl.innerHTML='<span class="dot"></span>已连接，等待下一条';u.onerror=e=>statusEl.textContent='语音失败：'+(e.error||'未知错误');speechSynthesis.speak(u)}
+function startListening(){const room=sanitizeRoom(roomEl.value);if(!room){statusEl.textContent='请先填写配对码';return}if(!('EventSource'in window)){statusEl.textContent='当前浏览器不支持实时接收';return}if(!('speechSynthesis'in window)){statusEl.textContent='当前浏览器不支持语音合成';return}if(es)es.close();voiceReady=true;speechSynthesis.cancel();const test=new SpeechSynthesisUtterance('接收端已启动');test.lang='zh-CN';const voice=chooseChineseVoice();if(voice)test.voice=voice;speechSynthesis.speak(test);const topic='cai-'+room;es=new EventSource(NTFY_BASE+'/'+encodeURIComponent(topic)+'/sse');card.classList.add('live');listenBtn.disabled=true;stopBtn.disabled=false;roomEl.disabled=true;statusEl.innerHTML='<span class="dot"></span>正在连接…';es.onopen=()=>statusEl.innerHTML='<span class="dot"></span>已连接，等待手机 A';es.onmessage=e=>{try{const data=JSON.parse(e.data);if(data.event!=='message'||!data.message)return;if(data.id&&data.id===lastId)return;lastId=data.id||'';resultEl.textContent=data.message;speak(data.message)}catch{}};es.onerror=()=>statusEl.innerHTML='<span class="dot"></span>连接中断，浏览器正在自动重连…'}
+function stopListening(){if(es){es.close();es=null}if('speechSynthesis'in window)speechSynthesis.cancel();voiceReady=false;card.classList.remove('live');listenBtn.disabled=false;stopBtn.disabled=true;roomEl.disabled=false;statusEl.innerHTML='<span class="dot"></span>已停止'}
+const q=new URLSearchParams(location.search).get('room');roomEl.value=sanitizeRoom(q||localStorage.getItem('two_phone_room')||'');roomEl.onchange=()=>localStorage.setItem('two_phone_room',sanitizeRoom(roomEl.value));listenBtn.onclick=startListening;stopBtn.onclick=stopListening;if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=()=>{};
+})();
+</script>
+</body>
+</html>
