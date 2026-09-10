@@ -1,0 +1,1 @@
+This marks the v2.0 branch2 snapshot on main before branch creation.
