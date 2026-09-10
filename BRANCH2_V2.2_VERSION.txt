@@ -1,0 +1,4 @@
+project=branch2 full-paper answer relay
+version=v2.2-branch2-answer-only
+date=2026-09-10
+purpose=phone A captures a full test page; Gemini returns only question-number + final-answer lines; phone B displays text answers using human-readable notation
