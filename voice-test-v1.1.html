@@ -1,0 +1,74 @@
+<!--
+项目：手机自动拍照 + Gemini 图片分析 + 本机语音播报测试
+作用：手机拍照后把图片交给 Gemini 分析，固定提问“图片中有什么？”，并把 AI 返回结果在本手机朗读出来。
+版本：v1.1-voice-test-public
+修改日期：2026-09-10
+来源：test-ai-voice-v1.1-2026-09-10
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>自动拍照 + AI识别 + 语音播报</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0f14;color:#fff;font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:760px;margin:auto;padding:16px}.title{font-size:25px;font-weight:800;margin:4px 0}.sub{color:#9aa7b7;font-size:14px;line-height:1.55;margin:8px 0 14px}.card{background:#121821;border:1px solid #263140;border-radius:18px;overflow:hidden}.preview{position:relative;background:#000;aspect-ratio:3/4;max-height:68vh}.preview video{width:100%;height:100%;object-fit:cover}.badge{position:absolute;top:12px;left:12px;background:#000b;padding:8px 10px;border-radius:12px;font-size:13px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#777;margin-right:7px}.running .dot{background:#38d47a}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}.stat{background:#0e141c;border:1px solid #263140;border-radius:13px;text-align:center;padding:10px}.num{font-size:20px;font-weight:800}.lab{font-size:12px;color:#9aa7b7}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}button{border:0;border-radius:13px;padding:14px 10px;font-size:16px;font-weight:700;background:#273241;color:#fff}button.primary{background:#2389ff}button.stop{background:#7a2529}button:disabled{opacity:.45}.full{grid-column:1/-1}.notice{margin-top:12px;padding:12px;border:1px solid #263140;border-radius:14px;color:#aab4c2;font-size:13px;line-height:1.55}.galleryHead{display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px}.galleryHead h2{font-size:18px;margin:0}.small{padding:8px 10px;font-size:13px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.shot{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:1px solid #263140;background:#111923}.shot img{width:100%;height:100%;object-fit:cover}.time{position:absolute;bottom:0;left:0;right:0;font-size:10px;padding:18px 5px 5px;background:linear-gradient(transparent,#000d)}.empty{grid-column:1/-1;color:#9aa7b7;text-align:center;padding:28px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}canvas{display:none}.ai{margin-top:18px;padding:14px;background:#121821;border:1px solid #263140;border-radius:18px}.ai h2{font-size:19px;margin:0 0 8px}.ai p{margin:0 0 12px;color:#9aa7b7;font-size:13px;line-height:1.55}.field{margin:10px 0}.field label{display:block;font-size:13px;color:#cbd4df;margin-bottom:6px}.field input,.field select{width:100%;border:1px solid #334154;background:#0c1219;color:#fff;border-radius:11px;padding:11px 12px;font-size:14px}.fixedPrompt{margin:10px 0;padding:12px;border:1px solid #334154;background:#0c1219;border-radius:11px;color:#fff}.fixedPrompt b{display:block;color:#9aa7b7;font-size:12px;margin-bottom:6px}.check{display:flex;gap:9px;align-items:center;margin:10px 0;color:#d7dee7;font-size:14px}.check input{width:18px;height:18px}.aiActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.result{margin-top:12px;background:#0c1219;border:1px solid #263140;border-radius:12px;padding:12px;min-height:86px;white-space:pre-wrap;line-height:1.55;color:#e7edf5;font-size:14px}.result.muted{color:#8492a3}.aiStatus{font-size:12px;color:#9aa7b7;margin-top:8px}.voiceOn{background:#176b3a!important}@media(min-width:700px){.preview{aspect-ratio:16/10}.grid{grid-template-columns:repeat(5,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="title">自动拍照 + AI识别 + 语音播报</div>
+<div class="sub">测试页：不再填写问题。每次分析固定向 Gemini 提问“图片中有什么？”，识别完成后保留文字结果，并由本手机自动朗读。</div>
+<section class="card" id="card">
+<div class="preview"><video id="video" autoplay muted playsinline></video><div class="badge"><span class="dot"></span><span id="status">未启动</span></div></div>
+<div class="stats"><div class="stat"><div class="num" id="count">0</div><div class="lab">本次拍摄</div></div><div class="stat"><div class="num" id="countdown">—</div><div class="lab">下张倒计时</div></div><div class="stat"><div class="num" id="stored">0</div><div class="lab">本地照片</div></div></div>
+<div class="buttons"><button class="primary" id="start">开始自动拍照</button><button class="stop" id="stop" disabled>停止</button><button class="full" id="switch" disabled>切换前 / 后摄像头</button></div>
+</section>
+<div class="row"><button id="wake">保持屏幕常亮</button><button id="clear">清空本地照片</button></div>
+<div class="notice"><b>语音说明：</b>每次重新打开网页后，先点一次“开启语音播报”。手机浏览器可能要求先有一次手动点击，才允许后续自动朗读。</div>
+<section class="ai">
+<h2>AI 图片分析</h2>
+<p>Gemini API Key 仍只保存在 Vercel 后端。此页面固定问题，并在收到分析结果后调用手机浏览器语音合成功能。</p>
+<div class="field"><label for="accessCode">分析访问码（若你的后端未设置可留空）</label><input id="accessCode" type="password" autocomplete="off" placeholder="ANALYZE_TOKEN"></div>
+<div class="fixedPrompt"><b>固定问题</b><span>图片中有什么？</span></div>
+<div class="field"><label for="detail">图片分析精度</label><select id="detail"><option value="low">低：速度快、成本低</option><option value="auto">自动</option><option value="high">高：细节更多、成本更高</option></select></div>
+<label class="check"><input type="checkbox" id="autoAI"> 每拍一张都自动交给 AI 分析并朗读</label>
+<div class="aiActions"><button class="primary" id="analyzeLatest">分析最新照片</button><button id="enableVoice">开启语音播报</button><button id="saveAIConfig">保存设置</button><button id="stopVoice">停止朗读</button></div>
+<div class="aiStatus" id="aiStatus">AI 尚未运行</div>
+<div class="aiStatus" id="voiceStatus">语音：尚未开启</div>
+<div class="result muted" id="aiResult">分析结果会显示在这里，并在语音开启后自动朗读。</div>
+</section>
+<div class="galleryHead"><h2>本地照片</h2><button class="small" id="refresh">刷新</button></div>
+<div class="grid" id="gallery"><div class="empty">还没有照片</div></div>
+<canvas id="canvas"></canvas>
+</div>
+<script>
+(()=>{
+const GAP=5000,DB='auto-camera-local',STORE='photos',FIXED_PROMPT='图片中有什么？',API='/api/analyze';
+const v=document.getElementById('video'),c=document.getElementById('canvas'),x=c.getContext('2d'),status=document.getElementById('status'),card=document.getElementById('card'),count=document.getElementById('count'),cd=document.getElementById('countdown'),stored=document.getElementById('stored'),gallery=document.getElementById('gallery');
+const accessCode=document.getElementById('accessCode'),detailEl=document.getElementById('detail'),autoAI=document.getElementById('autoAI'),aiStatus=document.getElementById('aiStatus'),aiResult=document.getElementById('aiResult'),voiceStatus=document.getElementById('voiceStatus'),enableVoiceBtn=document.getElementById('enableVoice');
+let stream=null,timer=null,tick=null,running=false,n=0,facing='environment',next=0,wakeLock=null,lastBlob=null,analysisBusy=false,pendingBlob=null,voiceReady=false;
+const setStatus=(s,on=false)=>{status.textContent=s;card.classList.toggle('running',on)};
+function db(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function save(blob){const d=await db();await new Promise((res,rej)=>{const t=d.transaction(STORE,'readwrite');t.objectStore(STORE).add({created:Date.now(),blob});t.oncomplete=res;t.onerror=()=>rej(t.error)});d.close()}
+async function all(){const d=await db();const a=await new Promise((res,rej)=>{const r=d.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)});d.close();return a.sort((a,b)=>b.created-a.created)}
+async function render(){const a=await all();stored.textContent=a.length;lastBlob=a[0]?.blob||lastBlob;gallery.innerHTML='';if(!a.length){gallery.innerHTML='<div class="empty">还没有照片</div>';return}a.slice(0,60).forEach(p=>{const u=URL.createObjectURL(p.blob),d=document.createElement('div'),i=document.createElement('img'),t=document.createElement('div');d.className='shot';i.src=u;i.loading='lazy';t.className='time';t.textContent=new Date(p.created).toLocaleString('zh-CN',{hour12:false});d.append(i,t);gallery.appendChild(d)})}
+async function openCam(){if(!navigator.mediaDevices?.getUserMedia)throw new Error('浏览器不支持摄像头');if(stream)stream.getTracks().forEach(t=>t.stop());setStatus('正在请求摄像头权限…');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});v.srcObject=stream;await v.play();document.getElementById('switch').disabled=false}
+async function shot(){if(!stream||v.readyState<2)return;const w=v.videoWidth,h=v.videoHeight;if(!w||!h)return;const m=1600,s=Math.min(1,m/Math.max(w,h));c.width=Math.round(w*s);c.height=Math.round(h*s);x.drawImage(v,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.82));if(!b)return;lastBlob=b;await save(b);n++;count.textContent=n;await render();if(autoAI.checked)queueAnalysis(b)}
+function timers(){next=Date.now();const go=async()=>{if(!running)return;try{await shot()}catch(e){setStatus('保存失败：'+e.message,true)}next=Date.now()+GAP;timer=setTimeout(go,GAP)};go();tick=setInterval(()=>{if(running)cd.textContent=Math.max(0,Math.ceil((next-Date.now())/1000))+'s'},250)}
+async function start(){try{await openCam();running=true;n=0;count.textContent=0;document.getElementById('start').disabled=true;document.getElementById('stop').disabled=false;setStatus('正在自动拍摄',true);timers()}catch(e){setStatus('无法启动：'+e.message);alert('无法使用摄像头，请允许浏览器访问摄像头。')}}
+function stop(){running=false;clearTimeout(timer);clearInterval(tick);cd.textContent='—';if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;v.srcObject=null}document.getElementById('start').disabled=false;document.getElementById('stop').disabled=true;document.getElementById('switch').disabled=true;setStatus('已停止')}
+function blobToDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}
+function chooseChineseVoice(){const voices=speechSynthesis.getVoices();return voices.find(v=>/^zh-CN/i.test(v.lang))||voices.find(v=>/^zh/i.test(v.lang))||null}
+function speakText(text){if(!voiceReady||!('speechSynthesis'in window)||!text)return;const clean=String(text).replace(/[*#`_>]/g,' ').replace(/\s+/g,' ').trim();if(!clean)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(clean);u.lang='zh-CN';u.rate=1;u.pitch=1;const voice=chooseChineseVoice();if(voice)u.voice=voice;u.onstart=()=>voiceStatus.textContent='语音：正在朗读';u.onend=()=>voiceStatus.textContent='语音：已开启，等待下一次识别';u.onerror=e=>voiceStatus.textContent='语音失败：'+(e.error||'未知错误');speechSynthesis.speak(u)}
+function enableVoice(){if(!('speechSynthesis'in window)){voiceStatus.textContent='语音：当前浏览器不支持';return}voiceReady=true;enableVoiceBtn.classList.add('voiceOn');enableVoiceBtn.textContent='语音已开启';voiceStatus.textContent='语音：已开启';speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('语音播报已开启');u.lang='zh-CN';const voice=chooseChineseVoice();if(voice)u.voice=voice;speechSynthesis.speak(u)}
+async function analyzeBlob(blob){if(!blob)throw new Error('还没有可分析的照片');analysisBusy=true;aiStatus.textContent='正在把最新照片交给 AI 分析…';aiResult.classList.add('muted');aiResult.textContent='分析中…';try{const image=await blobToDataURL(blob);const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','X-Analyze-Token':accessCode.value.trim()},body:JSON.stringify({image,prompt:FIXED_PROMPT,detail:detailEl.value})});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||('HTTP '+r.status));const text=data.text||'AI 没有返回文字';aiResult.classList.remove('muted');aiResult.textContent=text;aiStatus.textContent='分析完成 · '+(data.model||'AI');speakText(text)}finally{analysisBusy=false;if(pendingBlob){const p=pendingBlob;pendingBlob=null;setTimeout(()=>analyzeBlob(p).catch(e=>{aiStatus.textContent='自动分析失败：'+e.message}),0)}}}
+function queueAnalysis(blob){if(analysisBusy){pendingBlob=blob;aiStatus.textContent='AI仍在处理上一张；已保留最新一张等待分析';return}analyzeBlob(blob).catch(e=>{analysisBusy=false;aiStatus.textContent='自动分析失败：'+e.message;aiResult.classList.add('muted');aiResult.textContent=e.message})}
+function loadAI(){detailEl.value=localStorage.getItem('voice_test_detail')||'low';autoAI.checked=localStorage.getItem('voice_test_auto')==='1';accessCode.value=localStorage.getItem('voice_test_token')||''}
+function saveAI(){localStorage.setItem('voice_test_detail',detailEl.value);localStorage.setItem('voice_test_auto',autoAI.checked?'1':'0');localStorage.setItem('voice_test_token',accessCode.value);aiStatus.textContent='设置已保存在这台手机'}
+document.getElementById('start').onclick=start;document.getElementById('stop').onclick=stop;document.getElementById('switch').onclick=async()=>{facing=facing==='environment'?'user':'environment';try{await openCam();if(running)setStatus('正在自动拍摄',true)}catch(e){alert('切换摄像头失败')}};document.getElementById('refresh').onclick=render;document.getElementById('clear').onclick=async()=>{if(confirm('确定清空全部本地照片吗？')){const d=await db();await new Promise((res,rej)=>{const t=d.transaction(STORE,'readwrite');t.objectStore(STORE).clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});d.close();lastBlob=null;render()}};document.getElementById('wake').onclick=async()=>{try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen');alert('已开启屏幕常亮')}else alert('当前浏览器不支持屏幕常亮')}catch(e){alert('开启失败：'+e.message)}};document.getElementById('analyzeLatest').onclick=()=>analyzeBlob(lastBlob).catch(e=>{aiStatus.textContent='分析失败：'+e.message;aiResult.classList.add('muted');aiResult.textContent=e.message});document.getElementById('enableVoice').onclick=enableVoice;document.getElementById('stopVoice').onclick=()=>{if('speechSynthesis'in window)speechSynthesis.cancel();voiceStatus.textContent=voiceReady?'语音：已开启，当前已停止朗读':'语音：尚未开启'};document.getElementById('saveAIConfig').onclick=saveAI;autoAI.onchange=saveAI;document.addEventListener('visibilitychange',()=>{if(running)setStatus(document.hidden?'页面在后台，系统可能暂停拍摄':'正在自动拍摄',true)});loadAI();render().catch(()=>{});
+})();
+</script>
+</body>
+</html>
