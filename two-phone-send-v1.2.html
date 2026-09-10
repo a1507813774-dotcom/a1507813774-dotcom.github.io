@@ -1,0 +1,50 @@
+<!--
+项目：双手机 AI 视觉语音中继测试
+页面：手机 A（摄像头 / Gemini 分析 / 发送结果）
+作用：手机 A 拍照后调用既有 Gemini 后端，固定提问“图片中有什么？”，把 AI 返回文本发送给手机 B；手机 A 不朗读。
+版本：v1.2-two-phone-voice
+修改日期：2026-09-10
+基础版本：v1.1-voice-test
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>手机A：拍照 → AI → 发给手机B</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0f14;color:#fff;font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:760px;margin:auto;padding:16px}h1{font-size:24px;margin:4px 0 8px}.sub{color:#9aa7b7;line-height:1.55;font-size:14px}.card{background:#121821;border:1px solid #263140;border-radius:18px;padding:14px;margin-top:14px}.preview{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:3/4;max-height:62vh}video{width:100%;height:100%;object-fit:cover}.badge{position:absolute;left:10px;top:10px;background:#000b;padding:7px 9px;border-radius:10px;font-size:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}button{border:0;border-radius:12px;padding:13px 10px;font-size:15px;font-weight:700;background:#283342;color:white}button.primary{background:#2389ff}button.stop{background:#7a2529}button.good{background:#176b3a}button:disabled{opacity:.45}label{display:block;color:#cbd4df;font-size:13px;margin-bottom:6px}input,select{width:100%;border:1px solid #334154;background:#0c1219;color:#fff;border-radius:11px;padding:11px 12px;font-size:14px}.field{margin-top:10px}.status{font-size:13px;color:#9aa7b7;margin-top:8px;white-space:pre-wrap}.result{margin-top:10px;background:#0c1219;border:1px solid #263140;border-radius:12px;padding:12px;min-height:72px;white-space:pre-wrap;line-height:1.55}.fixed{padding:10px 12px;background:#0c1219;border:1px solid #334154;border-radius:11px}.code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}.check{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}.check input{width:18px;height:18px}.small{font-size:12px;color:#9aa7b7;line-height:1.55}@media(min-width:700px){.preview{aspect-ratio:16/10}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>手机 A：拍照 → Gemini → 手机 B</h1>
+<div class="sub">本机只负责拍照、AI 分析和发送结果，<b>不会朗读</b>。固定问题：<b>“图片中有什么？”</b></div>
+<section class="card"><div class="field"><label for="room">配对码</label><input id="room" class="code" autocomplete="off"></div><div class="grid2"><button id="newRoom">生成新配对码</button><button id="copyLink" class="good">复制手机B链接</button></div><div class="status" id="receiverLink"></div><div class="small">测试中使用 ntfy.sh 作为临时中继。配对码随机生成且消息不缓存；只有正在监听同一配对码的手机 B 才能收到。</div></section>
+<section class="card"><div class="preview"><video id="video" autoplay muted playsinline></video><div class="badge" id="camStatus">摄像头未启动</div></div><div class="grid2"><button id="start" class="primary">开始摄像头</button><button id="stop" class="stop" disabled>停止</button><button id="switch" disabled>切换前/后摄像头</button><button id="captureAnalyze" class="good" disabled>拍照并分析发送</button></div></section>
+<section class="card"><div class="fixed"><b>固定问题：</b> 图片中有什么？</div><div class="field"><label for="apiBase">AI 后端地址（留空 = 当前网站）</label><input id="apiBase" placeholder="例如：https://a1507813774-dotcom-github-io.vercel.app"></div><div class="field"><label for="accessCode">分析访问码（若后端未设置可留空）</label><input id="accessCode" type="password" autocomplete="off"></div><div class="field"><label for="detail">图片分析精度</label><select id="detail"><option value="low">低：速度快</option><option value="auto">自动</option><option value="high">高：细节更多</option></select></div><label class="check"><input type="checkbox" id="autoMode"> 每 5 秒自动拍照 → 分析 → 发给手机 B</label><div class="status" id="aiStatus">等待操作</div><div class="result" id="result">AI 结果会显示在这里；手机 A 不发声。</div></section><canvas id="canvas" hidden></canvas>
+</div>
+<script>
+(()=>{
+const FIXED_PROMPT='图片中有什么？',GAP=5000,NTFY_BASE='https://ntfy.sh';
+const v=document.getElementById('video'),c=document.getElementById('canvas'),ctx=c.getContext('2d'),roomEl=document.getElementById('room'),apiBase=document.getElementById('apiBase'),accessCode=document.getElementById('accessCode'),detail=document.getElementById('detail'),autoMode=document.getElementById('autoMode'),camStatus=document.getElementById('camStatus'),aiStatus=document.getElementById('aiStatus'),result=document.getElementById('result'),captureAnalyze=document.getElementById('captureAnalyze');
+let stream=null,facing='environment',autoTimer=null,busy=false,pending=false;
+function randomRoom(){const a=new Uint8Array(16);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('')}
+function sanitizeRoom(s){return(s||'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,64)}
+function receiverUrl(){const base=location.origin+location.pathname.replace(/two-phone-send-v1\.2\.html.*$/,'two-phone-listen-v1.2.html');return base+'?room='+encodeURIComponent(sanitizeRoom(roomEl.value))}
+function updateRoomUI(){let r=sanitizeRoom(roomEl.value);if(!r){r=randomRoom();roomEl.value=r}localStorage.setItem('two_phone_room',r);document.getElementById('receiverLink').textContent='手机 B 打开：'+receiverUrl()}
+async function copyReceiverLink(){updateRoomUI();const url=receiverUrl();try{await navigator.clipboard.writeText(url);aiStatus.textContent='已复制手机 B 链接'}catch{prompt('复制这个链接到手机 B：',url)}}
+async function startCam(){try{if(stream)stream.getTracks().forEach(t=>t.stop());stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});v.srcObject=stream;await v.play();camStatus.textContent='摄像头已启动';document.getElementById('start').disabled=true;document.getElementById('stop').disabled=false;document.getElementById('switch').disabled=false;captureAnalyze.disabled=false}catch(e){camStatus.textContent='摄像头失败：'+e.message}}
+function stopCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;v.srcObject=null;clearInterval(autoTimer);autoTimer=null;autoMode.checked=false;camStatus.textContent='摄像头已停止';document.getElementById('start').disabled=false;document.getElementById('stop').disabled=true;document.getElementById('switch').disabled=true;captureAnalyze.disabled=true}
+async function captureBlob(){if(!stream||v.readyState<2)throw new Error('摄像头还没有准备好');const w=v.videoWidth,h=v.videoHeight,max=1600,scale=Math.min(1,max/Math.max(w,h));c.width=Math.round(w*scale);c.height=Math.round(h*scale);ctx.drawImage(v,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));if(!blob)throw new Error('拍照失败');return blob}
+function blobToDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}
+function analyzeEndpoint(){const base=apiBase.value.trim().replace(/\/$/,'');return base?base+'/api/analyze':'/api/analyze'}
+async function publishToB(text){const r=sanitizeRoom(roomEl.value);if(!r)throw new Error('没有配对码');const url=NTFY_BASE+'/'+encodeURIComponent('cai-'+r)+'?cache=no';const resp=await fetch(url,{method:'POST',body:text});if(!resp.ok)throw new Error('发送到手机 B 失败：HTTP '+resp.status)}
+async function analyzeAndSend(){if(busy){pending=true;aiStatus.textContent='上一张仍在分析；已标记稍后再处理最新画面';return}busy=true;captureAnalyze.disabled=true;try{aiStatus.textContent='正在拍照…';const blob=await captureBlob(),image=await blobToDataURL(blob);aiStatus.textContent='正在交给 Gemini 分析…';const resp=await fetch(analyzeEndpoint(),{method:'POST',headers:{'Content-Type':'application/json','X-Analyze-Token':accessCode.value.trim()},body:JSON.stringify({image,prompt:FIXED_PROMPT,detail:detail.value})});const data=await resp.json().catch(()=>({}));if(!resp.ok)throw new Error(data.error||('Gemini HTTP '+resp.status));const text=(data.text||'').trim();if(!text)throw new Error('Gemini 没有返回内容');result.textContent=text;aiStatus.textContent='识别完成，正在发给手机 B…';await publishToB(text);aiStatus.textContent='已发送给手机 B · '+new Date().toLocaleTimeString('zh-CN',{hour12:false})}catch(e){aiStatus.textContent='失败：'+e.message}finally{busy=false;captureAnalyze.disabled=!stream;if(pending){pending=false;setTimeout(analyzeAndSend,0)}}}
+function applyAuto(){clearInterval(autoTimer);autoTimer=null;if(autoMode.checked){if(!stream){autoMode.checked=false;return}analyzeAndSend();autoTimer=setInterval(analyzeAndSend,GAP)}localStorage.setItem('two_phone_auto',autoMode.checked?'1':'0')}
+document.getElementById('newRoom').onclick=()=>{roomEl.value=randomRoom();updateRoomUI()};document.getElementById('copyLink').onclick=copyReceiverLink;roomEl.onchange=updateRoomUI;document.getElementById('start').onclick=startCam;document.getElementById('stop').onclick=stopCam;document.getElementById('switch').onclick=async()=>{facing=facing==='environment'?'user':'environment';await startCam()};captureAnalyze.onclick=analyzeAndSend;autoMode.onchange=applyAuto;apiBase.value=localStorage.getItem('ai_api_base')||'';detail.value=localStorage.getItem('ai_detail')||'low';apiBase.onchange=()=>localStorage.setItem('ai_api_base',apiBase.value.trim());detail.onchange=()=>localStorage.setItem('ai_detail',detail.value);roomEl.value=localStorage.getItem('two_phone_room')||randomRoom();updateRoomUI();
+})();
+</script>
+</body>
+</html>
