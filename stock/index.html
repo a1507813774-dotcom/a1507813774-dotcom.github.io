@@ -2,379 +2,155 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#080b10">
-<title>StockScope · 2–5分钟股票走势</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b10">
+<title>分时记录台 · MinuteLedger Web</title>
 <style>
-:root{
-  --bg:#080b10;--panel:#0f141c;--panel2:#111923;--line:#202b39;--grid:#1c2632;
-  --text:#eef3f8;--muted:#8e9baa;--blue:#3a8cff;--green:#19c37d;--red:#ff5c6c;--amber:#f5b942;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overscroll-behavior:none}
-body{min-height:100vh}
-button,input,select{font:inherit}
-.wrap{max-width:1240px;margin:auto;padding:14px}
-.header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
-.brand{display:flex;gap:12px;align-items:center}
-.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(145deg,#1d6cff,#5fa2ff);display:grid;place-items:center;font-weight:900}
-.title{font-size:22px;font-weight:850;line-height:1.05}
-.sub{font-size:12px;color:var(--muted);margin-top:5px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-button{border:1px solid var(--line);background:#151c26;color:var(--text);border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
-button:hover{border-color:#3b4a5d}
-button.active{background:#18355a;border-color:#2d6fc4;color:#fff}
-button.primary{background:#1267da;border-color:#247be8}
-button.ghost{background:transparent}
-button.danger{background:#34171c;border-color:#5a262f}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
-.topgrid{display:grid;grid-template-columns:260px 1fr;gap:12px}
-.sidebar{padding:15px}
-.symbolRow{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.symbol{font-size:28px;font-weight:900;letter-spacing:.4px}
-.tag{font-size:11px;border:1px solid var(--line);color:var(--muted);padding:5px 7px;border-radius:999px}
-.price{font-size:34px;font-weight:900;margin-top:14px}
-.change{font-size:16px;font-weight:800;margin-left:8px}
-.pos{color:var(--green)}.neg{color:var(--red)}
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
-.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
-.metric .k{font-size:11px;color:var(--muted)}
-.metric .v{font-size:15px;font-weight:800;margin-top:4px}
-.meta{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);line-height:1.7}
-.chartCard{overflow:hidden}
-.toolbar{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
-.toolbar .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
-.toolbar .grow{flex:1}
-.toolbar button{padding:7px 10px;font-size:13px}
-.status{font-size:12px;color:var(--muted);white-space:nowrap}
-.canvasWrap{position:relative;height:560px;min-height:360px;touch-action:none;user-select:none}
-canvas{display:block;width:100%;height:100%}
-.tip{position:absolute;display:none;pointer-events:none;background:#080d14ee;border:1px solid #2b3a4d;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.5;min-width:150px;box-shadow:0 8px 30px #0009}
-.legend{position:absolute;left:12px;top:10px;font-size:12px;color:var(--muted);background:#0c1219cc;padding:5px 8px;border-radius:8px}
-.footerbar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;flex-wrap:wrap}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#68778a;margin-right:6px}
-.dot.live{background:var(--green)}
-.settings{margin-top:12px;padding:15px;display:none}
-.settings.open{display:block}
-.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
-.field input,.field select{width:100%;border:1px solid var(--line);background:#0a1017;color:var(--text);border-radius:10px;padding:10px}
-.help{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
-.apiBox{margin-top:10px;background:#0a1017;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;white-space:pre-wrap;color:#b8c6d7}
-@media(max-width:760px){
-  .wrap{padding:8px}.header{align-items:center}.sub{display:none}.title{font-size:18px}.logo{width:36px;height:36px}
-  .topgrid{grid-template-columns:1fr}.sidebar{padding:12px}.metrics{grid-template-columns:repeat(4,1fr)}
-  .metric{padding:8px}.metric .v{font-size:13px}.price{font-size:29px;margin-top:9px}.meta{display:none}
-  .canvasWrap{height:58vh;min-height:410px}.toolbar{gap:5px;padding:8px}.toolbar button{padding:7px 8px;font-size:12px}
-  .settingsGrid{grid-template-columns:1fr}.actions button:not(.primary){display:none}
-}
-@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.canvasWrap{height:60vh}}
+:root{--bg:#070b10;--panel:#101720;--panel2:#0c1219;--line:#263548;--text:#f4f7fb;--muted:#8291a5;--cyan:#59cff5;--green:#35d39b;--red:#ff6680;--amber:#f0b55a}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+body{min-height:100vh}.wrap{max-width:760px;margin:auto;padding:22px 16px 36px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.title{font-size:34px;font-weight:900;letter-spacing:.5px}.sub{color:var(--muted);font-size:15px;font-weight:700;margin-top:4px}
+.actions{display:flex;gap:10px}button{border:1px solid var(--line);background:#111923;color:var(--text);border-radius:15px;padding:12px 18px;font-weight:800;font-size:16px}
+button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#061018;border-color:var(--cyan)}button.primary{background:#168ce7;border-color:#269eff}
+.status{margin-top:18px;border:1px solid var(--line);background:#101720;border-radius:18px;padding:14px 16px;color:var(--green);font-weight:800;font-size:15px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;margin-right:8px}
+.sectionTitle{color:var(--muted);font-weight:900;font-size:18px;margin:25px 0 12px}.watch{display:flex;gap:10px;overflow:auto;padding-bottom:3px}.watch::-webkit-scrollbar{display:none}.watch button{min-width:104px}
+.quote{margin-top:18px;border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:18px 20px}.quoteTop{display:flex;justify-content:space-between;gap:10px}.sym{font-size:30px;font-weight:950}.market{color:var(--muted);font-weight:800;align-self:flex-end}.priceRow{display:flex;justify-content:space-between;gap:8px;align-items:end;margin-top:10px}.price{font-size:48px;font-weight:950}.chg{border:1px solid #1c7258;border-radius:12px;padding:8px 12px;color:var(--green);font-weight:900;font-size:18px}.chg.neg{color:var(--red);border-color:#7b2d40}
+.ranges{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:18px 0 12px}.ranges button{width:100%;padding:14px 8px;color:#a5b3c5}.ranges button.active{color:#081018}
+.chartCard{position:relative;border:1px solid var(--line);border-radius:20px;background:#090f16;overflow:hidden;padding:8px 8px 12px}.legend{display:flex;gap:18px;color:#9babc0;font-size:14px;padding:6px 8px}.legend span:first-child{color:var(--cyan)}.legend span:nth-child(2){color:var(--amber)}
+.canvasWrap{height:530px;position:relative;touch-action:none}.canvasWrap canvas{width:100%;height:100%;display:block}.tip{position:absolute;display:none;z-index:4;background:#162231ee;border:1px solid #2b3a50;border-radius:12px;padding:9px 11px;line-height:1.55;font-size:13px;pointer-events:none;min-width:190px}.hint{color:var(--muted);font-size:12px;text-align:center;margin-top:7px}
+.settings{display:none;margin-top:18px;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:16px}.settings.open{display:block}.field{margin:11px 0}.field label{display:block;color:#a5b3c5;font-size:13px;font-weight:800;margin-bottom:6px}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#091019;color:var(--text);font-size:14px}.settingsBtns{display:flex;gap:10px;margin-top:12px}.settingsBtns button{flex:1}.note{color:var(--muted);font-size:12px;line-height:1.65;margin-top:11px}.error{color:var(--red)}
+@media(max-width:520px){.wrap{padding:18px 12px 28px}.title{font-size:31px}.sub{font-size:13px}.actions button{padding:11px 14px}.price{font-size:43px}.canvasWrap{height:520px}.watch button{min-width:98px}.status{font-size:14px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="header">
-    <div class="brand">
-      <div class="logo">S</div>
-      <div><div class="title">StockScope</div><div class="sub">2–5分钟股票走势 · 可滑动/缩放 · API-ready</div></div>
-    </div>
-    <div class="actions">
-      <button id="demoBtn">演示数据</button>
-      <button id="settingsBtn">API 设置</button>
-      <button class="primary" id="refreshBtn">刷新</button>
-    </div>
-  </header>
+<header>
+  <div><div class="title">分时记录台</div><div class="sub">Web · 24/5真实分钟数据留在本机</div></div>
+  <div class="actions"><button id="refresh">刷新</button><button id="settingsBtn">设置</button></div>
+</header>
 
-  <div class="topgrid">
-    <aside class="card sidebar">
-      <div class="symbolRow"><div class="symbol" id="symbolText">SNDK</div><div class="tag" id="sourceTag">DEMO</div></div>
-      <div><span class="price" id="priceText">—</span><span class="change" id="changeText">—</span></div>
-      <div class="metrics">
-        <div class="metric"><div class="k">24H 涨跌</div><div class="v" id="mChange">—</div></div>
-        <div class="metric"><div class="k">振幅</div><div class="v" id="mAmp">—</div></div>
-        <div class="metric"><div class="k">起点 → 终点</div><div class="v" id="mStartEnd">—</div></div>
-        <div class="metric"><div class="k">最高 / 最低</div><div class="v" id="mHiLo">—</div></div>
-      </div>
-      <div class="meta" id="meta">
-        行情时间：—<br>
-        报告刷新：—<br>
-        数据延迟：—<br>
-        当前区间：24H
-      </div>
-    </aside>
+<div class="status" id="status"><span class="dot"></span>正在读取真实行情…</div>
 
-    <main class="card chartCard">
-      <div class="toolbar">
-        <button class="interval active" data-v="2">2 分钟</button>
-        <button class="interval" data-v="5">5 分钟</button>
-        <span class="sep"></span>
-        <button class="session active" data-v="all">24H</button>
-        <button class="session" data-v="overnight">夜盘</button>
-        <button class="session" data-v="premarket">盘前</button>
-        <button class="session" data-v="regular">常规</button>
-        <button class="session" data-v="afterhours">盘后</button>
-        <span class="grow"></span>
-        <button id="resetBtn">复位</button>
-        <span class="status" id="statusText"><span class="dot"></span>等待数据</span>
-      </div>
-      <div class="canvasWrap" id="canvasWrap">
-        <canvas id="chart"></canvas>
-        <div class="legend" id="legend">拖动平移 · 双指/滚轮缩放</div>
-        <div class="tip" id="tip"></div>
-      </div>
-      <div class="footerbar">
-        <span>手机：单指拖动，双指缩放；桌面：拖动 + 滚轮缩放</span>
-        <span id="rangeText">—</span>
-      </div>
-    </main>
-  </div>
+<div class="sectionTitle">自选股</div>
+<div class="watch" id="watch"></div>
 
-  <section class="card settings" id="settings">
-    <div class="settingsGrid">
-      <div class="field"><label>股票代码</label><input id="cfgSymbol" value="SNDK"></div>
-      <div class="field"><label>API Base URL</label><input id="cfgApi" placeholder="例如：https://your-api.vercel.app"></div>
-      <div class="field"><label>访问令牌（可选）</label><input id="cfgToken" type="password" autocomplete="off" placeholder="不要把服务商主 API Key 放在网页里"></div>
-      <div class="field"><label>启动模式</label><select id="cfgMode"><option value="demo">演示数据</option><option value="api">真实 API</option></select></div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="primary" id="saveCfg">保存并刷新</button><button id="closeCfg">关闭</button></div>
-    <div class="help">前端只保存你自己的后端地址和可撤销访问令牌。OpenAI、行情商等真正的密钥应放在后端环境变量里，不应写入 GitHub Pages。</div>
-    <div class="apiBox">行情接口约定：
-GET {API_BASE}/api/market/candles?symbol=SNDK&interval=2&session=all
+<section class="quote">
+  <div class="quoteTop"><div><div class="sym" id="symbol">SOXX</div><div style="color:var(--muted);font-weight:800" id="name">SOXX</div></div><div class="market">美股 · USD</div></div>
+  <div class="priceRow"><div class="price" id="price">—</div><div class="chg" id="change">—</div></div>
+</section>
 
-返回：
-{
-  "symbol":"SNDK",
-  "previousClose":130.54,
-  "source":"YOUR_PROVIDER",
-  "dataTimestamp":"2026-09-21T14:31:00-04:00",
-  "candles":[
-    {"t":"2026-09-21T04:00:00-04:00","o":130.5,"h":130.8,"l":130.4,"c":130.7,"v":21300}
-  ]
-}
+<div class="ranges">
+  <button data-range="1h">1小时</button>
+  <button class="active" data-range="day">当日</button>
+  <button data-range="5d">5日</button>
+</div>
 
-后续 AI/预测接口可独立接入：
-POST {API_BASE}/api/analyze
-body: { "symbol":"SNDK", "candles":[...], "question":"..." }</div>
-  </section>
+<section class="chartCard">
+  <div class="legend"><span>● 收盘</span><span>● VWAP</span><span style="margin-left:auto;color:#8797aa">ET</span></div>
+  <div class="canvasWrap" id="canvasWrap"><canvas id="chart"></canvas><div class="tip" id="tip"></div></div>
+  <div class="hint">单指拖动准星 · 双指缩放 · 数据缓存于本机</div>
+</section>
+
+<section class="settings" id="settings">
+  <div class="field"><label>自定义行情 API（可选，优先级最高）</label><input id="apiBase" placeholder="例如：https://你的后端.example.com"></div>
+  <div class="field"><label>Alpaca Key（用于 Overnight/BOATS 夜盘，可选）</label><input id="alpacaKey" autocomplete="off"></div>
+  <div class="field"><label>Alpaca Secret（仅保存在此浏览器本机）</label><input id="alpacaSecret" type="password" autocomplete="off"></div>
+  <div class="field"><label>夜盘 Feed</label><select id="alpacaFeed"><option value="overnight">overnight（衍生夜盘，兼容性优先）</option><option value="boats">boats（Blue Ocean ATS）</option></select></div>
+  <div class="settingsBtns"><button class="primary" id="save">保存并刷新</button><button id="close">关闭</button></div>
+  <div class="note">Yahoo 分钟行情通过 CORS 代理读取 04:00–20:00 ET；Alpaca 夜盘凭据不会写入 GitHub。自定义 API 预留格式：<b>GET /api/market/candles?symbol=SOXX</b>，返回 candles[{t,o,h,l,c,v}]。以后可直接把该地址切到你自己的 API。</div>
+</section>
 </div>
 
 <script>
-/* StockScope Web v1.0.0
-   修改日期：2026-09-21
-   架构：UI / market adapter / analysis adapter 分离
-*/
+/* MinuteLedger Web v1.0.0 | 2026-09-21 */
 (()=>{
-'use strict';
+const WATCH=[["TSLA","Tesla"],["AAPL","Apple"],["MSFT","Microsoft"],["QQQ","QQQ"],["SOXX","SOXX"]];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const els={
-  canvas:$('#chart'),wrap:$('#canvasWrap'),tip:$('#tip'),status:$('#statusText'),range:$('#rangeText'),
-  price:$('#priceText'),change:$('#changeText'),sym:$('#symbolText'),source:$('#sourceTag'),
-  mChange:$('#mChange'),mAmp:$('#mAmp'),mStartEnd:$('#mStartEnd'),mHiLo:$('#mHiLo'),meta:$('#meta'),
-  settings:$('#settings'),cfgSymbol:$('#cfgSymbol'),cfgApi:$('#cfgApi'),cfgToken:$('#cfgToken'),cfgMode:$('#cfgMode')
-};
-const ctx=els.canvas.getContext('2d');
-let state={
-  symbol:'SNDK', interval:2, session:'all', mode:'demo', apiBase:'', token:'',
-  raw:[], data:[], previousClose:null, source:'DEMO', dataTimestamp:null,
-  viewStart:0, viewEnd:1, dragging:false, dragX:0, dragStartA:0, dragStartB:1,
-  hover:null, pinchDist:null, pinchStartA:0, pinchStartB:1
-};
-
-function loadCfg(){
-  try{
-    const c=JSON.parse(localStorage.getItem('stockscope_config')||'{}');
-    Object.assign(state,{
-      symbol:c.symbol||'SNDK',apiBase:c.apiBase||'',token:c.token||'',mode:c.mode||'demo'
-    });
-  }catch{}
-  els.cfgSymbol.value=state.symbol; els.cfgApi.value=state.apiBase; els.cfgToken.value=state.token; els.cfgMode.value=state.mode;
+const el={status:$("#status"),watch:$("#watch"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed")};
+const ctx=el.canvas.getContext("2d");
+let S={symbol:"SOXX",name:"SOXX",range:"day",bars:[],raw:[],prevClose:null,drag:false,hover:null,viewA:0,viewB:1,touches:[]};
+function cfg(){try{return JSON.parse(localStorage.getItem("minuteledger_cfg")||"{}")}catch{return {}}}
+function saveCfg(){localStorage.setItem("minuteledger_cfg",JSON.stringify({apiBase:el.apiBase.value.trim().replace(/\/$/,""),alpacaKey:el.alpacaKey.value.trim(),alpacaSecret:el.alpacaSecret.value.trim(),alpacaFeed:el.alpacaFeed.value}))}
+function loadCfg(){const c=cfg();el.apiBase.value=c.apiBase||"";el.alpacaKey.value=c.alpacaKey||"";el.alpacaSecret.value=c.alpacaSecret||"";el.alpacaFeed.value=c.alpacaFeed||"overnight"}
+function setStatus(t,bad=false){el.status.classList.toggle("error",bad);el.status.innerHTML='<span class="dot"></span>'+t}
+function cacheKey(){return "minuteledger_cache_"+S.symbol}
+function saveCache(data){try{localStorage.setItem(cacheKey(),JSON.stringify({at:Date.now(),...data}))}catch{}}
+function loadCache(){try{return JSON.parse(localStorage.getItem(cacheKey())||"null")}catch{return null}}
+function fmt(x,d=2){return Number.isFinite(x)?x.toFixed(d):"—"}
+function etParts(ts){const p={};new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date(ts)).forEach(x=>{if(x.type!=="literal")p[x.type]=x.value});return {y:+p.year,m:+p.month,d:+p.day,h:+p.hour,min:+p.minute}}
+function etLabel(ts){return new Date(ts).toLocaleString("zh-CN",{timeZone:"America/New_York",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false})}
+function isOvernight(ts){const p=etParts(ts);return p.h>=20||p.h<4}
+function mergeBars(a,b){const m=new Map();for(const x of a)m.set(x.t,x);for(const x of b)m.set(x.t,x);return [...m.values()].sort((x,y)=>x.t-y.t)}
+async function fetchCustom(){
+ const c=cfg();if(!c.apiBase)return null;
+ const u=new URL(c.apiBase+"/api/market/candles");u.searchParams.set("symbol",S.symbol);u.searchParams.set("interval","1");u.searchParams.set("range","5d");
+ const r=await fetch(u);if(!r.ok)throw new Error("自定义API "+r.status);const j=await r.json();
+ if(!Array.isArray(j.candles))throw new Error("自定义API缺少 candles[]");
+ return {bars:j.candles.map(x=>({t:new Date(x.t).getTime(),o:+x.o,h:+x.h,l:+x.l,c:+x.c,v:+(x.v||0)})).filter(x=>Number.isFinite(x.t)&&Number.isFinite(x.c)),prevClose:+j.previousClose||null,source:j.source||"自定义API"};
 }
-function saveCfg(){
-  state.symbol=(els.cfgSymbol.value||'SNDK').trim().toUpperCase();
-  state.apiBase=els.cfgApi.value.trim().replace(/\/$/,'');
-  state.token=els.cfgToken.value.trim();
-  state.mode=els.cfgMode.value;
-  localStorage.setItem('stockscope_config',JSON.stringify({symbol:state.symbol,apiBase:state.apiBase,token:state.token,mode:state.mode}));
+async function fetchYahoo(){
+ const now=Math.floor(Date.now()/1000),from=now-7*86400;
+ const target="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(S.symbol)+"?period1="+from+"&period2="+now+"&interval=1m&includePrePost=true&events=div%2Csplits";
+ const urls=["https://api.allorigins.win/raw?url="+encodeURIComponent(target),"https://api.allorigins.win/get?url="+encodeURIComponent(target)];
+ let lastErr;
+ for(const u of urls){try{const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);let j=await r.json();if(j.contents)j=JSON.parse(j.contents);const z=j?.chart?.result?.[0];if(!z)throw new Error("Yahoo无数据");const q=z.indicators?.quote?.[0]||{},ts=z.timestamp||[],bars=[];for(let i=0;i<ts.length;i++){const c=+q.close?.[i];if(!Number.isFinite(c))continue;bars.push({t:ts[i]*1000,o:+q.open?.[i]||c,h:+q.high?.[i]||c,l:+q.low?.[i]||c,c,v:+q.volume?.[i]||0})}return {bars,prevClose:+z.meta?.chartPreviousClose||+z.meta?.previousClose||null,source:"Yahoo"};}catch(e){lastErr=e}}
+ throw lastErr||new Error("Yahoo读取失败");
 }
-function fmt(n,d=2){return Number.isFinite(n)?n.toFixed(d):'—'}
-function pct(n){return Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+'%':'—'}
-function localStamp(d=new Date()){return d.toLocaleString('zh-CN',{hour12:false})}
-function colorClass(n){return n>=0?'pos':'neg'}
-function setStatus(text,live=false){
-  els.status.innerHTML='<span class="dot '+(live?'live':'')+'"></span>'+text;
-}
-function xorshift(seed){
-  let x=seed|0; return ()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return ((x>>>0)%1000000)/1000000}
-}
-function seedFor(s){
-  let h=2166136261; for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)} return h>>>0;
-}
-function demoData(interval){
-  const r=xorshift(seedFor(state.symbol+'-2026-09-21-'+interval));
-  const start=new Date('2026-09-21T04:00:00-04:00').getTime();
-  const end=new Date('2026-09-21T20:00:00-04:00').getTime();
-  const step=interval*60000;
-  let p=130.54, arr=[];
-  for(let t=start,i=0;t<=end;t+=step,i++){
-    const hour=new Date(t).getHours();
-    let vol=.10;
-    if(hour>=9&&hour<16)vol=.19;
-    if(hour<7||hour>=18)vol=.075;
-    const trend=(i/(Math.max(1,(end-start)/step))-.45)*.012;
-    const shock=(r()-.5)*2*vol+trend;
-    const o=p, c=Math.max(1,o+shock), h=Math.max(o,c)+r()*vol*.7, l=Math.min(o,c)-r()*vol*.7;
-    const v=Math.round((hour>=9&&hour<16?90000:18000)*(0.45+r()*1.3));
-    arr.push({t:new Date(t).toISOString(),o,h,l,c,v});
-    p=c;
-  }
-  return {symbol:state.symbol,previousClose:130.54,source:'DEMO · 非真实行情',dataTimestamp:new Date(end).toISOString(),candles:arr};
-}
-function sessionOf(ts){
-  const d=new Date(ts);
-  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,hour:'2-digit',minute:'2-digit'}).formatToParts(d);
-  const h=+parts.find(x=>x.type==='hour').value, m=+parts.find(x=>x.type==='minute').value, z=h*60+m;
-  if(z<4*60) return 'overnight';
-  if(z<9*60+30) return 'premarket';
-  if(z<16*60) return 'regular';
-  if(z<20*60) return 'afterhours';
-  return 'overnight';
-}
-function normalizePayload(p){
-  if(!p||!Array.isArray(p.candles)) throw new Error('API 返回格式缺少 candles[]');
-  const candles=p.candles.map(c=>({
-    t:new Date(c.t).getTime(),o:+c.o,h:+c.h,l:+c.l,c:+c.c,v:+(c.v||0)
-  })).filter(c=>Number.isFinite(c.t)&&Number.isFinite(c.c)).sort((a,b)=>a.t-b.t);
-  return {...p,candles};
-}
-async function marketFetch(){
-  if(state.mode==='demo') return normalizePayload(demoData(state.interval));
-  if(!state.apiBase) throw new Error('尚未设置 API Base URL');
-  const u=new URL(state.apiBase+'/api/market/candles');
-  u.searchParams.set('symbol',state.symbol);u.searchParams.set('interval',String(state.interval));u.searchParams.set('session','all');
-  const headers={}; if(state.token) headers['Authorization']='Bearer '+state.token;
-  const r=await fetch(u,{headers});
-  let p={}; try{p=await r.json()}catch{}
-  if(!r.ok) throw new Error(p.error||('HTTP '+r.status));
-  return normalizePayload(p);
-}
-function applySession(){
-  state.data=state.session==='all'?state.raw:state.raw.filter(c=>sessionOf(c.t)===state.session);
-  resetView(false); updateSummary(); draw();
+async function fetchAlpacaOvernight(){
+ const c=cfg();if(!c.alpacaKey||!c.alpacaSecret)return {bars:[],source:""};
+ const start=new Date(Date.now()-7*86400000).toISOString(),end=new Date().toISOString();
+ const u=new URL("https://data.alpaca.markets/v2/stocks/"+encodeURIComponent(S.symbol)+"/bars");u.searchParams.set("timeframe","1Min");u.searchParams.set("start",start);u.searchParams.set("end",end);u.searchParams.set("limit","10000");u.searchParams.set("sort","asc");u.searchParams.set("feed",c.alpacaFeed||"overnight");u.searchParams.set("adjustment","raw");
+ const r=await fetch(u,{headers:{"APCA-API-KEY-ID":c.alpacaKey,"APCA-API-SECRET-KEY":c.alpacaSecret,"Accept":"application/json"}});
+ if(!r.ok)throw new Error("Alpaca夜盘 "+r.status);const j=await r.json();return {bars:(j.bars||[]).map(x=>({t:new Date(x.t).getTime(),o:+x.o,h:+x.h,l:+x.l,c:+x.c,v:+(x.v||0)})).filter(x=>Number.isFinite(x.t)&&Number.isFinite(x.c)&&isOvernight(x.t)),source:(c.alpacaFeed||"overnight").toUpperCase()};
 }
 async function refresh(){
-  setStatus('正在读取数据…');
-  try{
-    const p=await marketFetch();
-    state.raw=p.candles; state.previousClose=Number.isFinite(+p.previousClose)?+p.previousClose:(state.raw[0]?.o??null);
-    state.source=p.source||state.mode.toUpperCase(); state.dataTimestamp=p.dataTimestamp||state.raw.at(-1)?.t||null;
-    els.sym.textContent=p.symbol||state.symbol; els.source.textContent=state.source;
-    applySession(); setStatus(state.mode==='demo'?'演示数据':'已连接 API',state.mode==='api');
-  }catch(e){
-    setStatus('读取失败');
-    alert('行情读取失败：'+e.message);
-  }
+ setStatus("正在读取 "+S.symbol+" 真实分钟行情…");
+ try{
+   let main=await fetchCustom();
+   if(!main)main=await fetchYahoo();
+   let on={bars:[],source:""};try{on=await fetchAlpacaOvernight()}catch(e){console.warn(e)}
+   S.raw=mergeBars(main.bars,on.bars);S.prevClose=main.prevClose||S.raw[0]?.o||null;saveCache({bars:S.raw,prevClose:S.prevClose,source:main.source,onSource:on.source});
+   applyRange();setStatus((on.bars.length?on.source+"夜盘 + ":"")+main.source+" · 真实分钟 · "+S.raw.length+"根"+(on.bars.length?" · 夜盘"+on.bars.length+"根":" · 夜盘未连接"));
+ }catch(e){
+   const c=loadCache();if(c?.bars?.length){S.raw=c.bars;S.prevClose=c.prevClose;applyRange();setStatus("网络读取失败，已显示本机缓存 · "+new Date(c.at).toLocaleString("zh-CN"),true)}
+   else{S.raw=[];applyRange();setStatus("真实行情读取失败："+e.message,true)}
+ }
 }
-function resetView(redraw=true){state.viewStart=0;state.viewEnd=1;if(redraw)draw()}
-function visibleSlice(){
-  const n=state.data.length;if(!n)return [];
-  const a=Math.max(0,Math.floor(state.viewStart*(n-1)));
-  const b=Math.min(n-1,Math.ceil(state.viewEnd*(n-1)));
-  return state.data.slice(a,b+1);
+function applyRange(){
+ const a=S.raw;if(!a.length){S.bars=[];updateQuote();draw();return}
+ const last=a.at(-1).t;let from=last-5*86400000;if(S.range==="1h")from=last-60*60000;else if(S.range==="day")from=last-24*3600000;
+ S.bars=a.filter(x=>x.t>=from&&x.t<=last);S.viewA=0;S.viewB=1;updateQuote();draw();
 }
-function updateSummary(){
-  const a=state.data;if(!a.length){return}
-  const first=a[0].o,last=a.at(-1).c,hi=Math.max(...a.map(x=>x.h)),lo=Math.min(...a.map(x=>x.l)),base=state.previousClose||first;
-  const ch=(last-base)/base*100, amp=(hi-lo)/base*100;
-  els.price.textContent=fmt(last);
-  els.change.textContent=pct(ch);els.change.className='change '+colorClass(ch);
-  els.mChange.textContent=pct(ch);els.mChange.className='v '+colorClass(ch);
-  els.mAmp.textContent=fmt(amp)+'%';els.mStartEnd.textContent=fmt(first)+' → '+fmt(last);els.mHiLo.textContent=fmt(hi)+' / '+fmt(lo);
-  const report=new Date(), dataTime=state.dataTimestamp?new Date(state.dataTimestamp):new Date(a.at(-1).t);
-  const delay=Math.max(0,Math.round((report-dataTime)/60000));
-  els.meta.innerHTML='行情时间：'+localStamp(dataTime)+'<br>报告刷新：'+localStamp(report)+'<br>数据延迟：'+delay+' 分钟'+(delay>20?'（数据过旧）':'')+'<br>当前区间：'+sessionLabel(state.session);
+function updateQuote(){
+ const a=S.bars.length?S.bars:S.raw;el.symbol.textContent=S.symbol;el.name.textContent=S.name;if(!a.length){el.price.textContent="—";el.change.textContent="—";return}
+ const last=a.at(-1).c,base=S.prevClose||a[0].o,ch=(last-base)/base*100;el.price.textContent="$"+fmt(last);el.change.textContent=(ch>=0?"+":"")+fmt(last-base)+"  "+(ch>=0?"+":"")+fmt(ch)+"%";el.change.className="chg"+(ch<0?" neg":"");
 }
-function sessionLabel(v){return {all:'24H',overnight:'夜盘',premarket:'盘前',regular:'常规',afterhours:'盘后'}[v]||v}
-function resize(){
-  const r=els.wrap.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
-  els.canvas.width=Math.round(r.width*dpr);els.canvas.height=Math.round(r.height*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);draw();
-}
+function visible(){const n=S.bars.length;if(!n)return [];const i=Math.floor(S.viewA*(n-1)),j=Math.ceil(S.viewB*(n-1));return S.bars.slice(i,j+1)}
+function vwapSeries(d){let pv=0,v=0;return d.map(x=>{const vol=Math.max(0,x.v||0),typ=(x.h+x.l+x.c)/3;pv+=typ*vol;v+=vol;return v?pv/v:null})}
+function resize(){const r=el.wrap.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);el.canvas.width=Math.round(r.width*d);el.canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);draw()}
 function draw(){
-  const W=els.wrap.clientWidth,H=els.wrap.clientHeight;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0b1017';ctx.fillRect(0,0,W,H);
-  const d=visibleSlice();
-  if(d.length<2){ctx.fillStyle='#7f8b99';ctx.font='14px system-ui';ctx.fillText('暂无数据',20,30);return}
-  const left=10,right=58,top=30,bottom=80,pW=W-left-right,pH=H-top-bottom;
-  const hi=Math.max(...d.map(x=>x.h)),lo=Math.min(...d.map(x=>x.l)),pad=(hi-lo||1)*.08,yMax=hi+pad,yMin=lo-pad;
-  const x=i=>left+i/(d.length-1)*pW;
-  const y=p=>top+(yMax-p)/(yMax-yMin)*pH;
-  ctx.strokeStyle='#1b2633';ctx.lineWidth=1;ctx.fillStyle='#8190a1';ctx.font='11px system-ui';
-  for(let i=0;i<=5;i++){const yy=top+i*pH/5;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(left+pW,yy);ctx.stroke();const pv=yMax-i*(yMax-yMin)/5;ctx.fillText(fmt(pv),W-right+7,yy+4)}
-  for(let i=0;i<=6;i++){const xx=left+i*pW/6;ctx.beginPath();ctx.moveTo(xx,top);ctx.lineTo(xx,top+pH);ctx.stroke();const idx=Math.min(d.length-1,Math.round(i*(d.length-1)/6));const dt=new Date(d[idx].t);const lab=dt.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});ctx.fillText(lab,Math.max(2,xx-18),top+pH+18)}
-  const base=state.previousClose;
-  if(Number.isFinite(base)&&base>=yMin&&base<=yMax){ctx.setLineDash([5,4]);ctx.strokeStyle='#59697c';ctx.beginPath();ctx.moveTo(left,y(base));ctx.lineTo(left+pW,y(base));ctx.stroke();ctx.setLineDash([])}
-  const volMax=Math.max(...d.map(x=>x.v||0),1),volTop=top+pH+34,volH=34;
-  d.forEach((c,i)=>{const xx=x(i),w=Math.max(1,pW/d.length*.62),vh=(c.v||0)/volMax*volH;ctx.fillStyle=c.c>=c.o?'#1b8c63aa':'#a53d4aaa';ctx.fillRect(xx-w/2,volTop+volH-vh,w,vh)});
-  const last=d.at(-1),positive=last.c>=(state.previousClose||d[0].o);
-  ctx.strokeStyle=positive?'#19c37d':'#ff5c6c';ctx.lineWidth=2;ctx.beginPath();
-  d.forEach((c,i)=>{const xx=x(i),yy=y(c.c);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
-  const grad=ctx.createLinearGradient(0,top,0,top+pH);grad.addColorStop(0,positive?'#19c37d2f':'#ff5c6c2b');grad.addColorStop(1,'#00000000');
-  ctx.lineTo(x(d.length-1),top+pH);ctx.lineTo(x(0),top+pH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
-  if(state.hover!=null){
-    const i=Math.max(0,Math.min(d.length-1,state.hover)),c=d[i],xx=x(i),yy=y(c.c);
-    ctx.strokeStyle='#74859a';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(xx,top);ctx.lineTo(xx,top+pH);ctx.moveTo(left,yy);ctx.lineTo(left+pW,yy);ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle=positive?'#19c37d':'#ff5c6c';ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();
-  }
-  const f=d[0],l=d.at(-1);els.range.textContent=new Date(f.t).toLocaleString('zh-CN',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+' → '+new Date(l.t).toLocaleTimeString('zh-CN',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false});
+ const W=el.wrap.clientWidth,H=el.wrap.clientHeight;ctx.clearRect(0,0,W,H);ctx.fillStyle="#090f16";ctx.fillRect(0,0,W,H);const d=visible();if(d.length<2){ctx.fillStyle="#8190a4";ctx.font="14px system-ui";ctx.fillText("暂无分钟数据",18,28);return}
+ const L=16,R=58,T=18,B=76,pw=W-L-R,ph=H-T-B-50,hi=Math.max(...d.map(x=>x.h)),lo=Math.min(...d.map(x=>x.l)),pad=(hi-lo||1)*.07,yHi=hi+pad,yLo=lo-pad,x=i=>L+i/(d.length-1)*pw,y=p=>T+(yHi-p)/(yHi-yLo)*ph;
+ ctx.strokeStyle="#243247";ctx.fillStyle="#7f90a5";ctx.font="11px system-ui";ctx.lineWidth=1;
+ for(let i=0;i<=4;i++){let yy=T+i*ph/4;ctx.beginPath();ctx.moveTo(L,yy);ctx.lineTo(L+pw,yy);ctx.stroke();ctx.fillText(fmt(yHi-i*(yHi-yLo)/4),W-R+5,yy+4)}
+ for(let i=0;i<=4;i++){let xx=L+i*pw/4,idx=Math.min(d.length-1,Math.round(i*(d.length-1)/4));ctx.fillText(new Date(d[idx].t).toLocaleTimeString("zh-CN",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit",hour12:false}),Math.max(2,xx-18),T+ph+18)}
+ const vw=vwapSeries(d);ctx.strokeStyle="#59cff5";ctx.lineWidth=2;ctx.beginPath();d.forEach((c,i)=>{i?ctx.lineTo(x(i),y(c.c)):ctx.moveTo(x(i),y(c.c))});ctx.stroke();
+ ctx.strokeStyle="#f0b55a";ctx.lineWidth=1.5;ctx.setLineDash([6,5]);ctx.beginPath();let started=false;vw.forEach((p,i)=>{if(!Number.isFinite(p))return;started?ctx.lineTo(x(i),y(p)):ctx.moveTo(x(i),y(p));started=true});ctx.stroke();ctx.setLineDash([]);
+ const vm=Math.max(...d.map(x=>x.v||0),1),vy=T+ph+40,vh=38;d.forEach((c,i)=>{const h=(c.v||0)/vm*vh;ctx.fillStyle=c.c>=c.o?"#238b67aa":"#9b4050aa";ctx.fillRect(x(i)-1.5,vy+vh-h,3,h)});
+ if(S.hover!=null){const i=Math.max(0,Math.min(d.length-1,S.hover)),c=d[i],xx=x(i),yy=y(c.c);ctx.strokeStyle="#9aa8b8";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(xx,T);ctx.lineTo(xx,T+ph+vh+40);ctx.moveTo(L,yy);ctx.lineTo(L+pw,yy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#59cff5";ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill()}
 }
-function hoverAt(clientX,clientY){
-  const r=els.wrap.getBoundingClientRect(),W=r.width,left=10,right=58,pW=W-left-right,d=visibleSlice();if(!d.length)return;
-  const px=Math.max(left,Math.min(left+pW,clientX-r.left)),i=Math.round((px-left)/pW*(d.length-1));state.hover=i;draw();
-  const c=d[i],base=state.previousClose||d[0].o,ch=(c.c-base)/base*100,dt=new Date(c.t);
-  els.tip.innerHTML='<b>'+dt.toLocaleString('zh-CN',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+' ET</b><br>收 '+fmt(c.c)+' <span class="'+colorClass(ch)+'">'+pct(ch)+'</span><br>开 '+fmt(c.o)+'　高 '+fmt(c.h)+'<br>低 '+fmt(c.l)+'　量 '+Math.round(c.v||0).toLocaleString();
-  els.tip.style.display='block';let x=clientX-r.left+14,y=clientY-r.top+14;if(x+175>r.width)x-=190;if(y+110>r.height)y-=120;els.tip.style.left=x+'px';els.tip.style.top=y+'px';
+function hover(clientX,clientY){
+ const d=visible();if(!d.length)return;const r=el.wrap.getBoundingClientRect(),L=16,R=58,pw=r.width-L-R,px=Math.max(L,Math.min(L+pw,clientX-r.left)),i=Math.round((px-L)/pw*(d.length-1));S.hover=i;draw();const c=d[i],base=S.prevClose||d[0].o,ch=(c.c-base)/base*100;
+ el.tip.innerHTML="<b>"+etLabel(c.t)+" ET</b><br>分时开 $"+fmt(c.o)+"　分时收 $"+fmt(c.c)+"<br>高 $"+fmt(c.h)+"　低 $"+fmt(c.l)+"<br><span style='color:"+(ch>=0?"#35d39b":"#ff6680")+"'>"+(ch>=0?"+":"")+fmt(ch)+"%</span>";
+ el.tip.style.display="block";let x=clientX-r.left+12,y=clientY-r.top+12;if(x+205>r.width)x-=215;if(y+115>r.height)y-=125;el.tip.style.left=x+"px";el.tip.style.top=y+"px";
 }
-function pan(dx){
-  const width=state.viewEnd-state.viewStart,shift=-dx/Math.max(1,els.wrap.clientWidth)*width;
-  let a=state.dragStartA+shift,b=state.dragStartB+shift;
-  if(a<0){b-=a;a=0}if(b>1){a-=b-1;b=1}
-  state.viewStart=Math.max(0,a);state.viewEnd=Math.min(1,b);draw();
-}
-function zoomAt(factor,centerRatio=.5,startA=state.viewStart,startB=state.viewEnd){
-  const old=startB-startA,newW=Math.max(.06,Math.min(1,old/factor));
-  const center=startA+old*centerRatio;let a=center-newW*centerRatio,b=a+newW;
-  if(a<0){b-=a;a=0}if(b>1){a-=b-1;b=1}
-  state.viewStart=Math.max(0,a);state.viewEnd=Math.min(1,b);draw();
-}
-els.wrap.addEventListener('wheel',e=>{e.preventDefault();const r=els.wrap.getBoundingClientRect(),c=(e.clientX-r.left)/r.width;zoomAt(e.deltaY<0?1.18:.85,c)},{passive:false});
-els.wrap.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;state.dragging=true;state.dragX=e.clientX;state.dragStartA=state.viewStart;state.dragStartB=state.viewEnd;els.wrap.setPointerCapture(e.pointerId)});
-els.wrap.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;if(state.dragging)pan(e.clientX-state.dragX);else hoverAt(e.clientX,e.clientY)});
-els.wrap.addEventListener('pointerup',()=>state.dragging=false);els.wrap.addEventListener('pointerleave',()=>{if(!state.dragging){state.hover=null;els.tip.style.display='none';draw()}});
-let touches=[];
-els.wrap.addEventListener('touchstart',e=>{
-  e.preventDefault();touches=[...e.touches];
-  state.dragStartA=state.viewStart;state.dragStartB=state.viewEnd;
-  if(touches.length===1){state.dragX=touches[0].clientX;hoverAt(touches[0].clientX,touches[0].clientY)}
-  if(touches.length===2){state.pinchDist=Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);state.pinchStartA=state.viewStart;state.pinchStartB=state.viewEnd}
-},{passive:false});
-els.wrap.addEventListener('touchmove',e=>{
-  e.preventDefault();touches=[...e.touches];
-  if(touches.length===1){pan(touches[0].clientX-state.dragX);hoverAt(touches[0].clientX,touches[0].clientY)}
-  if(touches.length===2&&state.pinchDist){const dist=Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);const r=els.wrap.getBoundingClientRect(),center=((touches[0].clientX+touches[1].clientX)/2-r.left)/r.width;zoomAt(dist/state.pinchDist,Math.max(0,Math.min(1,center)),state.pinchStartA,state.pinchStartB)}
-},{passive:false});
-els.wrap.addEventListener('touchend',e=>{if(!e.touches.length){els.tip.style.display='none';state.hover=null;draw()}},{passive:false});
-
-$$('.interval').forEach(b=>b.onclick=()=>{$$('.interval').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.interval=+b.dataset.v;refresh()});
-$$('.session').forEach(b=>b.onclick=()=>{$$('.session').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.session=b.dataset.v;applySession()});
-$('#resetBtn').onclick=()=>resetView();
-$('#refreshBtn').onclick=refresh;
-$('#demoBtn').onclick=()=>{state.mode='demo';els.cfgMode.value='demo';saveCfg();refresh()};
-$('#settingsBtn').onclick=()=>els.settings.classList.toggle('open');
-$('#closeCfg').onclick=()=>els.settings.classList.remove('open');
-$('#saveCfg').onclick=()=>{saveCfg();els.settings.classList.remove('open');refresh()};
-window.addEventListener('resize',resize);
-loadCfg();resize();refresh();
+el.wrap.addEventListener("pointermove",e=>hover(e.clientX,e.clientY));el.wrap.addEventListener("pointerleave",()=>{S.hover=null;el.tip.style.display="none";draw()});
+el.wrap.addEventListener("touchmove",e=>{if(e.touches.length===1){e.preventDefault();hover(e.touches[0].clientX,e.touches[0].clientY)}},{passive:false});el.wrap.addEventListener("touchend",()=>{el.tip.style.display="none";S.hover=null;draw()});
+function renderWatch(){el.watch.innerHTML="";for(const [s,n] of WATCH){const b=document.createElement("button");b.textContent=s;b.classList.toggle("active",s===S.symbol);b.onclick=()=>{S.symbol=s;S.name=n;renderWatch();refresh()};el.watch.appendChild(b)}}
+$$(".ranges button").forEach(b=>b.onclick=()=>{$$(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");S.range=b.dataset.range;applyRange()});
+$("#refresh").onclick=refresh;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};window.addEventListener("resize",resize);
+loadCfg();renderWatch();resize();refresh();
 })();
 </script>
 </body>
