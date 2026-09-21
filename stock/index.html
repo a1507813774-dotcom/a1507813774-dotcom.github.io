@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080b10">
+<title>StockScope · 2–5分钟股票走势</title>
+<style>
+:root{
+  --bg:#080b10;--panel:#0f141c;--panel2:#111923;--line:#202b39;--grid:#1c2632;
+  --text:#eef3f8;--muted:#8e9baa;--blue:#3a8cff;--green:#19c37d;--red:#ff5c6c;--amber:#f5b942;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overscroll-behavior:none}
+body{min-height:100vh}
+button,input,select{font:inherit}
+.wrap{max-width:1240px;margin:auto;padding:14px}
+.header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(145deg,#1d6cff,#5fa2ff);display:grid;place-items:center;font-weight:900}
+.title{font-size:22px;font-weight:850;line-height:1.05}
+.sub{font-size:12px;color:var(--muted);margin-top:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+button{border:1px solid var(--line);background:#151c26;color:var(--text);border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+button:hover{border-color:#3b4a5d}
+button.active{background:#18355a;border-color:#2d6fc4;color:#fff}
+button.primary{background:#1267da;border-color:#247be8}
+button.ghost{background:transparent}
+button.danger{background:#34171c;border-color:#5a262f}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+.topgrid{display:grid;grid-template-columns:260px 1fr;gap:12px}
+.sidebar{padding:15px}
+.symbolRow{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.symbol{font-size:28px;font-weight:900;letter-spacing:.4px}
+.tag{font-size:11px;border:1px solid var(--line);color:var(--muted);padding:5px 7px;border-radius:999px}
+.price{font-size:34px;font-weight:900;margin-top:14px}
+.change{font-size:16px;font-weight:800;margin-left:8px}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.metric .k{font-size:11px;color:var(--muted)}
+.metric .v{font-size:15px;font-weight:800;margin-top:4px}
+.meta{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);line-height:1.7}
+.chartCard{overflow:hidden}
+.toolbar{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap}
+.toolbar .sep{width:1px;height:24px;background:var(--line);margin:0 2px}
+.toolbar .grow{flex:1}
+.toolbar button{padding:7px 10px;font-size:13px}
+.status{font-size:12px;color:var(--muted);white-space:nowrap}
+.canvasWrap{position:relative;height:560px;min-height:360px;touch-action:none;user-select:none}
+canvas{display:block;width:100%;height:100%}
+.tip{position:absolute;display:none;pointer-events:none;background:#080d14ee;border:1px solid #2b3a4d;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.5;min-width:150px;box-shadow:0 8px 30px #0009}
+.legend{position:absolute;left:12px;top:10px;font-size:12px;color:var(--muted);background:#0c1219cc;padding:5px 8px;border-radius:8px}
+.footerbar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;flex-wrap:wrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#68778a;margin-right:6px}
+.dot.live{background:var(--green)}
+.settings{margin-top:12px;padding:15px;display:none}
+.settings.open{display:block}
+.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.field input,.field select{width:100%;border:1px solid var(--line);background:#0a1017;color:var(--text);border-radius:10px;padding:10px}
+.help{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
+.apiBox{margin-top:10px;background:#0a1017;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;white-space:pre-wrap;color:#b8c6d7}
+@media(max-width:760px){
+  .wrap{padding:8px}.header{align-items:center}.sub{display:none}.title{font-size:18px}.logo{width:36px;height:36px}
+  .topgrid{grid-template-columns:1fr}.sidebar{padding:12px}.metrics{grid-template-columns:repeat(4,1fr)}
+  .metric{padding:8px}.metric .v{font-size:13px}.price{font-size:29px;margin-top:9px}.meta{display:none}
+  .canvasWrap{height:58vh;min-height:410px}.toolbar{gap:5px;padding:8px}.toolbar button{padding:7px 8px;font-size:12px}
+  .settingsGrid{grid-template-columns:1fr}.actions button:not(.primary){display:none}
+}
+@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.canvasWrap{height:60vh}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="header">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><div class="title">StockScope</div><div class="sub">2–5分钟股票走势 · 可滑动/缩放 · API-ready</div></div>
+    </div>
+    <div class="actions">
+      <button id="demoBtn">演示数据</button>
+      <button id="settingsBtn">API 设置</button>
+      <button class="primary" id="refreshBtn">刷新</button>
+    </div>
+  </header>
+
+  <div class="topgrid">
+    <aside class="card sidebar">
+      <div class="symbolRow"><div class="symbol" id="symbolText">SNDK</div><div class="tag" id="sourceTag">DEMO</div></div>
+      <div><span class="price" id="priceText">—</span><span class="change" id="changeText">—</span></div>
+      <div class="metrics">
+        <div class="metric"><div class="k">24H 涨跌</div><div class="v" id="mChange">—</div></div>
+        <div class="metric"><div class="k">振幅</div><div class="v" id="mAmp">—</div></div>
+        <div class="metric"><div class="k">起点 → 终点</div><div class="v" id="mStartEnd">—</div></div>
+        <div class="metric"><div class="k">最高 / 最低</div><div class="v" id="mHiLo">—</div></div>
+      </div>
+      <div class="meta" id="meta">
+        行情时间：—<br>
+        报告刷新：—<br>
+        数据延迟：—<br>
+        当前区间：24H
+      </div>
+    </aside>
+
+    <main class="card chartCard">
+      <div class="toolbar">
+        <button class="interval active" data-v="2">2 分钟</button>
+        <button class="interval" data-v="5">5 分钟</button>
+        <span class="sep"></span>
+        <button class="session active" data-v="all">24H</button>
+        <button class="session" data-v="overnight">夜盘</button>
+        <button class="session" data-v="premarket">盘前</button>
+        <button class="session" data-v="regular">常规</button>
+        <button class="session" data-v="afterhours">盘后</button>
+        <span class="grow"></span>
+        <button id="resetBtn">复位</button>
+        <span class="status" id="statusText"><span class="dot"></span>等待数据</span>
+      </div>
+      <div class="canvasWrap" id="canvasWrap">
+        <canvas id="chart"></canvas>
+        <div class="legend" id="legend">拖动平移 · 双指/滚轮缩放</div>
+        <div class="tip" id="tip"></div>
+      </div>
+      <div class="footerbar">
+        <span>手机：单指拖动，双指缩放；桌面：拖动 + 滚轮缩放</span>
+        <span id="rangeText">—</span>
+      </div>
+    </main>
+  </div>
+
+  <section class="card settings" id="settings">
+    <div class="settingsGrid">
+      <div class="field"><label>股票代码</label><input id="cfgSymbol" value="SNDK"></div>
+      <div class="field"><label>API Base URL</label><input id="cfgApi" placeholder="例如：https://your-api.vercel.app"></div>
+      <div class="field"><label>访问令牌（可选）</label><input id="cfgToken" type="password" autocomplete="off" placeholder="不要把服务商主 API Key 放在网页里"></div>
+      <div class="field"><label>启动模式</label><select id="cfgMode"><option value="demo">演示数据</option><option value="api">真实 API</option></select></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="primary" id="saveCfg">保存并刷新</button><button id="closeCfg">关闭</button></div>
+    <div class="help">前端只保存你自己的后端地址和可撤销访问令牌。OpenAI、行情商等真正的密钥应放在后端环境变量里，不应写入 GitHub Pages。</div>
+    <div class="apiBox">行情接口约定：
+GET {API_BASE}/api/market/candles?symbol=SNDK&interval=2&session=all
+
+返回：
+{
+  "symbol":"SNDK",
+  "previousClose":130.54,
+  "source":"YOUR_PROVIDER",
+  "dataTimestamp":"2026-09-21T14:31:00-04:00",
+  "candles":[
+    {"t":"2026-09-21T04:00:00-04:00","o":130.5,"h":130.8,"l":130.4,"c":130.7,"v":21300}
+  ]
+}
+
+后续 AI/预测接口可独立接入：
+POST {API_BASE}/api/analyze
+body: { "symbol":"SNDK", "candles":[...], "question":"..." }</div>
+  </section>
+</div>
+
+<script>
+/* StockScope Web v1.0.0
+   修改日期：2026-09-21
+   架构：UI / market adapter / analysis adapter 分离
+*/
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const els={
+  canvas:$('#chart'),wrap:$('#canvasWrap'),tip:$('#tip'),status:$('#statusText'),range:$('#rangeText'),
+  price:$('#priceText'),change:$('#changeText'),sym:$('#symbolText'),source:$('#sourceTag'),
+  mChange:$('#mChange'),mAmp:$('#mAmp'),mStartEnd:$('#mStartEnd'),mHiLo:$('#mHiLo'),meta:$('#meta'),
+  settings:$('#settings'),cfgSymbol:$('#cfgSymbol'),cfgApi:$('#cfgApi'),cfgToken:$('#cfgToken'),cfgMode:$('#cfgMode')
+};
+const ctx=els.canvas.getContext('2d');
+let state={
+  symbol:'SNDK', interval:2, session:'all', mode:'demo', apiBase:'', token:'',
+  raw:[], data:[], previousClose:null, source:'DEMO', dataTimestamp:null,
+  viewStart:0, viewEnd:1, dragging:false, dragX:0, dragStartA:0, dragStartB:1,
+  hover:null, pinchDist:null, pinchStartA:0, pinchStartB:1
+};
+
+function loadCfg(){
+  try{
+    const c=JSON.parse(localStorage.getItem('stockscope_config')||'{}');
+    Object.assign(state,{
+      symbol:c.symbol||'SNDK',apiBase:c.apiBase||'',token:c.token||'',mode:c.mode||'demo'
+    });
+  }catch{}
+  els.cfgSymbol.value=state.symbol; els.cfgApi.value=state.apiBase; els.cfgToken.value=state.token; els.cfgMode.value=state.mode;
+}
+function saveCfg(){
+  state.symbol=(els.cfgSymbol.value||'SNDK').trim().toUpperCase();
+  state.apiBase=els.cfgApi.value.trim().replace(/\/$/,'');
+  state.token=els.cfgToken.value.trim();
+  state.mode=els.cfgMode.value;
+  localStorage.setItem('stockscope_config',JSON.stringify({symbol:state.symbol,apiBase:state.apiBase,token:state.token,mode:state.mode}));
+}
+function fmt(n,d=2){return Number.isFinite(n)?n.toFixed(d):'—'}
+function pct(n){return Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+'%':'—'}
+function localStamp(d=new Date()){return d.toLocaleString('zh-CN',{hour12:false})}
+function colorClass(n){return n>=0?'pos':'neg'}
+function setStatus(text,live=false){
+  els.status.innerHTML='<span class="dot '+(live?'live':'')+'"></span>'+text;
+}
+function xorshift(seed){
+  let x=seed|0; return ()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return ((x>>>0)%1000000)/1000000}
+}
+function seedFor(s){
+  let h=2166136261; for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)} return h>>>0;
+}
+function demoData(interval){
+  const r=xorshift(seedFor(state.symbol+'-2026-09-21-'+interval));
+  const start=new Date('2026-09-21T04:00:00-04:00').getTime();
+  const end=new Date('2026-09-21T20:00:00-04:00').getTime();
+  const step=interval*60000;
+  let p=130.54, arr=[];
+  for(let t=start,i=0;t<=end;t+=step,i++){
+    const hour=new Date(t).getHours();
+    let vol=.10;
+    if(hour>=9&&hour<16)vol=.19;
+    if(hour<7||hour>=18)vol=.075;
+    const trend=(i/(Math.max(1,(end-start)/step))-.45)*.012;
+    const shock=(r()-.5)*2*vol+trend;
+    const o=p, c=Math.max(1,o+shock), h=Math.max(o,c)+r()*vol*.7, l=Math.min(o,c)-r()*vol*.7;
+    const v=Math.round((hour>=9&&hour<16?90000:18000)*(0.45+r()*1.3));
+    arr.push({t:new Date(t).toISOString(),o,h,l,c,v});
+    p=c;
+  }
+  return {symbol:state.symbol,previousClose:130.54,source:'DEMO · 非真实行情',dataTimestamp:new Date(end).toISOString(),candles:arr};
+}
+function sessionOf(ts){
+  const d=new Date(ts);
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,hour:'2-digit',minute:'2-digit'}).formatToParts(d);
+  const h=+parts.find(x=>x.type==='hour').value, m=+parts.find(x=>x.type==='minute').value, z=h*60+m;
+  if(z<4*60) return 'overnight';
+  if(z<9*60+30) return 'premarket';
+  if(z<16*60) return 'regular';
+  if(z<20*60) return 'afterhours';
+  return 'overnight';
+}
+function normalizePayload(p){
+  if(!p||!Array.isArray(p.candles)) throw new Error('API 返回格式缺少 candles[]');
+  const candles=p.candles.map(c=>({
+    t:new Date(c.t).getTime(),o:+c.o,h:+c.h,l:+c.l,c:+c.c,v:+(c.v||0)
+  })).filter(c=>Number.isFinite(c.t)&&Number.isFinite(c.c)).sort((a,b)=>a.t-b.t);
+  return {...p,candles};
+}
+async function marketFetch(){
+  if(state.mode==='demo') return normalizePayload(demoData(state.interval));
+  if(!state.apiBase) throw new Error('尚未设置 API Base URL');
+  const u=new URL(state.apiBase+'/api/market/candles');
+  u.searchParams.set('symbol',state.symbol);u.searchParams.set('interval',String(state.interval));u.searchParams.set('session','all');
+  const headers={}; if(state.token) headers['Authorization']='Bearer '+state.token;
+  const r=await fetch(u,{headers});
+  let p={}; try{p=await r.json()}catch{}
+  if(!r.ok) throw new Error(p.error||('HTTP '+r.status));
+  return normalizePayload(p);
+}
+function applySession(){
+  state.data=state.session==='all'?state.raw:state.raw.filter(c=>sessionOf(c.t)===state.session);
+  resetView(false); updateSummary(); draw();
+}
+async function refresh(){
+  setStatus('正在读取数据…');
+  try{
+    const p=await marketFetch();
+    state.raw=p.candles; state.previousClose=Number.isFinite(+p.previousClose)?+p.previousClose:(state.raw[0]?.o??null);
+    state.source=p.source||state.mode.toUpperCase(); state.dataTimestamp=p.dataTimestamp||state.raw.at(-1)?.t||null;
+    els.sym.textContent=p.symbol||state.symbol; els.source.textContent=state.source;
+    applySession(); setStatus(state.mode==='demo'?'演示数据':'已连接 API',state.mode==='api');
+  }catch(e){
+    setStatus('读取失败');
+    alert('行情读取失败：'+e.message);
+  }
+}
+function resetView(redraw=true){state.viewStart=0;state.viewEnd=1;if(redraw)draw()}
+function visibleSlice(){
+  const n=state.data.length;if(!n)return [];
+  const a=Math.max(0,Math.floor(state.viewStart*(n-1)));
+  const b=Math.min(n-1,Math.ceil(state.viewEnd*(n-1)));
+  return state.data.slice(a,b+1);
+}
+function updateSummary(){
+  const a=state.data;if(!a.length){return}
+  const first=a[0].o,last=a.at(-1).c,hi=Math.max(...a.map(x=>x.h)),lo=Math.min(...a.map(x=>x.l)),base=state.previousClose||first;
+  const ch=(last-base)/base*100, amp=(hi-lo)/base*100;
+  els.price.textContent=fmt(last);
+  els.change.textContent=pct(ch);els.change.className='change '+colorClass(ch);
+  els.mChange.textContent=pct(ch);els.mChange.className='v '+colorClass(ch);
+  els.mAmp.textContent=fmt(amp)+'%';els.mStartEnd.textContent=fmt(first)+' → '+fmt(last);els.mHiLo.textContent=fmt(hi)+' / '+fmt(lo);
+  const report=new Date(), dataTime=state.dataTimestamp?new Date(state.dataTimestamp):new Date(a.at(-1).t);
+  const delay=Math.max(0,Math.round((report-dataTime)/60000));
+  els.meta.innerHTML='行情时间：'+localStamp(dataTime)+'<br>报告刷新：'+localStamp(report)+'<br>数据延迟：'+delay+' 分钟'+(delay>20?'（数据过旧）':'')+'<br>当前区间：'+sessionLabel(state.session);
+}
+function sessionLabel(v){return {all:'24H',overnight:'夜盘',premarket:'盘前',regular:'常规',afterhours:'盘后'}[v]||v}
+function resize(){
+  const r=els.wrap.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+  els.canvas.width=Math.round(r.width*dpr);els.canvas.height=Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);draw();
+}
+function draw(){
+  const W=els.wrap.clientWidth,H=els.wrap.clientHeight;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0b1017';ctx.fillRect(0,0,W,H);
+  const d=visibleSlice();
+  if(d.length<2){ctx.fillStyle='#7f8b99';ctx.font='14px system-ui';ctx.fillText('暂无数据',20,30);return}
+  const left=10,right=58,top=30,bottom=80,pW=W-left-right,pH=H-top-bottom;
+  const hi=Math.max(...d.map(x=>x.h)),lo=Math.min(...d.map(x=>x.l)),pad=(hi-lo||1)*.08,yMax=hi+pad,yMin=lo-pad;
+  const x=i=>left+i/(d.length-1)*pW;
+  const y=p=>top+(yMax-p)/(yMax-yMin)*pH;
+  ctx.strokeStyle='#1b2633';ctx.lineWidth=1;ctx.fillStyle='#8190a1';ctx.font='11px system-ui';
+  for(let i=0;i<=5;i++){const yy=top+i*pH/5;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(left+pW,yy);ctx.stroke();const pv=yMax-i*(yMax-yMin)/5;ctx.fillText(fmt(pv),W-right+7,yy+4)}
+  for(let i=0;i<=6;i++){const xx=left+i*pW/6;ctx.beginPath();ctx.moveTo(xx,top);ctx.lineTo(xx,top+pH);ctx.stroke();const idx=Math.min(d.length-1,Math.round(i*(d.length-1)/6));const dt=new Date(d[idx].t);const lab=dt.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/New_York'});ctx.fillText(lab,Math.max(2,xx-18),top+pH+18)}
+  const base=state.previousClose;
+  if(Number.isFinite(base)&&base>=yMin&&base<=yMax){ctx.setLineDash([5,4]);ctx.strokeStyle='#59697c';ctx.beginPath();ctx.moveTo(left,y(base));ctx.lineTo(left+pW,y(base));ctx.stroke();ctx.setLineDash([])}
+  const volMax=Math.max(...d.map(x=>x.v||0),1),volTop=top+pH+34,volH=34;
+  d.forEach((c,i)=>{const xx=x(i),w=Math.max(1,pW/d.length*.62),vh=(c.v||0)/volMax*volH;ctx.fillStyle=c.c>=c.o?'#1b8c63aa':'#a53d4aaa';ctx.fillRect(xx-w/2,volTop+volH-vh,w,vh)});
+  const last=d.at(-1),positive=last.c>=(state.previousClose||d[0].o);
+  ctx.strokeStyle=positive?'#19c37d':'#ff5c6c';ctx.lineWidth=2;ctx.beginPath();
+  d.forEach((c,i)=>{const xx=x(i),yy=y(c.c);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
+  const grad=ctx.createLinearGradient(0,top,0,top+pH);grad.addColorStop(0,positive?'#19c37d2f':'#ff5c6c2b');grad.addColorStop(1,'#00000000');
+  ctx.lineTo(x(d.length-1),top+pH);ctx.lineTo(x(0),top+pH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  if(state.hover!=null){
+    const i=Math.max(0,Math.min(d.length-1,state.hover)),c=d[i],xx=x(i),yy=y(c.c);
+    ctx.strokeStyle='#74859a';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(xx,top);ctx.lineTo(xx,top+pH);ctx.moveTo(left,yy);ctx.lineTo(left+pW,yy);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=positive?'#19c37d':'#ff5c6c';ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();
+  }
+  const f=d[0],l=d.at(-1);els.range.textContent=new Date(f.t).toLocaleString('zh-CN',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+' → '+new Date(l.t).toLocaleTimeString('zh-CN',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function hoverAt(clientX,clientY){
+  const r=els.wrap.getBoundingClientRect(),W=r.width,left=10,right=58,pW=W-left-right,d=visibleSlice();if(!d.length)return;
+  const px=Math.max(left,Math.min(left+pW,clientX-r.left)),i=Math.round((px-left)/pW*(d.length-1));state.hover=i;draw();
+  const c=d[i],base=state.previousClose||d[0].o,ch=(c.c-base)/base*100,dt=new Date(c.t);
+  els.tip.innerHTML='<b>'+dt.toLocaleString('zh-CN',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+' ET</b><br>收 '+fmt(c.c)+' <span class="'+colorClass(ch)+'">'+pct(ch)+'</span><br>开 '+fmt(c.o)+'　高 '+fmt(c.h)+'<br>低 '+fmt(c.l)+'　量 '+Math.round(c.v||0).toLocaleString();
+  els.tip.style.display='block';let x=clientX-r.left+14,y=clientY-r.top+14;if(x+175>r.width)x-=190;if(y+110>r.height)y-=120;els.tip.style.left=x+'px';els.tip.style.top=y+'px';
+}
+function pan(dx){
+  const width=state.viewEnd-state.viewStart,shift=-dx/Math.max(1,els.wrap.clientWidth)*width;
+  let a=state.dragStartA+shift,b=state.dragStartB+shift;
+  if(a<0){b-=a;a=0}if(b>1){a-=b-1;b=1}
+  state.viewStart=Math.max(0,a);state.viewEnd=Math.min(1,b);draw();
+}
+function zoomAt(factor,centerRatio=.5,startA=state.viewStart,startB=state.viewEnd){
+  const old=startB-startA,newW=Math.max(.06,Math.min(1,old/factor));
+  const center=startA+old*centerRatio;let a=center-newW*centerRatio,b=a+newW;
+  if(a<0){b-=a;a=0}if(b>1){a-=b-1;b=1}
+  state.viewStart=Math.max(0,a);state.viewEnd=Math.min(1,b);draw();
+}
+els.wrap.addEventListener('wheel',e=>{e.preventDefault();const r=els.wrap.getBoundingClientRect(),c=(e.clientX-r.left)/r.width;zoomAt(e.deltaY<0?1.18:.85,c)},{passive:false});
+els.wrap.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;state.dragging=true;state.dragX=e.clientX;state.dragStartA=state.viewStart;state.dragStartB=state.viewEnd;els.wrap.setPointerCapture(e.pointerId)});
+els.wrap.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;if(state.dragging)pan(e.clientX-state.dragX);else hoverAt(e.clientX,e.clientY)});
+els.wrap.addEventListener('pointerup',()=>state.dragging=false);els.wrap.addEventListener('pointerleave',()=>{if(!state.dragging){state.hover=null;els.tip.style.display='none';draw()}});
+let touches=[];
+els.wrap.addEventListener('touchstart',e=>{
+  e.preventDefault();touches=[...e.touches];
+  state.dragStartA=state.viewStart;state.dragStartB=state.viewEnd;
+  if(touches.length===1){state.dragX=touches[0].clientX;hoverAt(touches[0].clientX,touches[0].clientY)}
+  if(touches.length===2){state.pinchDist=Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);state.pinchStartA=state.viewStart;state.pinchStartB=state.viewEnd}
+},{passive:false});
+els.wrap.addEventListener('touchmove',e=>{
+  e.preventDefault();touches=[...e.touches];
+  if(touches.length===1){pan(touches[0].clientX-state.dragX);hoverAt(touches[0].clientX,touches[0].clientY)}
+  if(touches.length===2&&state.pinchDist){const dist=Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);const r=els.wrap.getBoundingClientRect(),center=((touches[0].clientX+touches[1].clientX)/2-r.left)/r.width;zoomAt(dist/state.pinchDist,Math.max(0,Math.min(1,center)),state.pinchStartA,state.pinchStartB)}
+},{passive:false});
+els.wrap.addEventListener('touchend',e=>{if(!e.touches.length){els.tip.style.display='none';state.hover=null;draw()}},{passive:false});
+
+$$('.interval').forEach(b=>b.onclick=()=>{$$('.interval').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.interval=+b.dataset.v;refresh()});
+$$('.session').forEach(b=>b.onclick=()=>{$$('.session').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.session=b.dataset.v;applySession()});
+$('#resetBtn').onclick=()=>resetView();
+$('#refreshBtn').onclick=refresh;
+$('#demoBtn').onclick=()=>{state.mode='demo';els.cfgMode.value='demo';saveCfg();refresh()};
+$('#settingsBtn').onclick=()=>els.settings.classList.toggle('open');
+$('#closeCfg').onclick=()=>els.settings.classList.remove('open');
+$('#saveCfg').onclick=()=>{saveCfg();els.settings.classList.remove('open');refresh()};
+window.addEventListener('resize',resize);
+loadCfg();resize();refresh();
+})();
+</script>
+</body>
+</html>
