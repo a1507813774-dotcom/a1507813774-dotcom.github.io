@@ -75,9 +75,9 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 </div>
 
 <script>
-/* MinuteLedger Web v2.1.0 | 2026-09-23 */
+/* MinuteLedger Web v2.1.1 | 2026-09-23 */
 (()=>{
-const VERSION="2.1.0";
+const VERSION="2.1.1";
 const WATCH=[["SOXX","SOXX"],["NVDA","NVIDIA"],["MU","Micron"],["SNDK","SanDisk"],["TSM","TSMC"],["AMD","AMD"],["AVGO","Broadcom"],["INTC","Intel"],["MRVL","Marvell"],["DELL","Dell"],["QQQ","QQQ"],["TSLA","Tesla"]];
 const $=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
 const el={status:$("#status"),watch:$("#watch"),coverage:$("#coverage"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed"),symbolInput:$("#symbolInput")};
@@ -157,18 +157,50 @@ async function parseYahooResponse(r,sourceLabel){
 }
 async function fetchYahoo(days=2){
  const now=Math.floor(Date.now()/1000),from=now-days*86400;
- const target="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(S.symbol)+"?period1="+from+"&period2="+now+"&interval=1m&includePrePost=true&events=div%2Csplits";
- try{
-   const r=await fetchTimed(target,{cache:"no-store"},1200);
-   return await parseYahooResponse(r,"Yahoo直连");
- }catch(_){}
- const proxyUrls=[
-   "https://api.allorigins.win/raw?url="+encodeURIComponent(target),
-   "https://api.allorigins.win/get?url="+encodeURIComponent(target)
+ const bases=[
+   "https://query1.finance.yahoo.com/v8/finance/chart/",
+   "https://query2.finance.yahoo.com/v8/finance/chart/"
  ];
+ const targets=bases.map(base=>base+encodeURIComponent(S.symbol)+"?period1="+from+"&period2="+now+"&interval=1m&includePrePost=true&events=div%2Csplits");
+
+ // 先尝试浏览器直连；多数浏览器会因 Yahoo CORS 立即拒绝，但若将来开放可直接受益。
  try{
-   return await Promise.any(proxyUrls.map(async u=>parseYahooResponse(await fetchTimed(u,{cache:"no-store"},3500),"Yahoo代理")));
- }catch(e){throw new Error("Yahoo快速通道超时/失败")}
+   return await Promise.any(targets.map(async target=>{
+     const r=await fetchTimed(target,{cache:"no-store"},1200);
+     return await parseYahooResponse(r,"Yahoo直连");
+   }));
+ }catch(_){}
+
+ // 公共代理并行竞速：任何一个先成功就立即使用，不再串行等待单一代理。
+ const proxied=[];
+ for(const target of targets){
+   proxied.push({
+     label:"AllOrigins",
+     url:"https://api.allorigins.win/raw?url="+encodeURIComponent(target)
+   });
+   proxied.push({
+     label:"CorsProxy",
+     url:"https://corsproxy.io/?url="+encodeURIComponent(target)
+   });
+   proxied.push({
+     label:"CodeTabs",
+     url:"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(target)
+   });
+ }
+ const errors=[];
+ try{
+   return await Promise.any(proxied.map(async p=>{
+     try{
+       const r=await fetchTimed(p.url,{cache:"no-store"},4200);
+       return await parseYahooResponse(r,"Yahoo/"+p.label);
+     }catch(e){
+       errors.push(p.label+":"+(e?.name||e?.message||"失败"));
+       throw e;
+     }
+   }));
+ }catch(e){
+   throw new Error("Yahoo代理全部失败"+(errors.length?" · "+[...new Set(errors)].slice(0,4).join(" / "):""));
+ }
 }
 async function fetchAlpacaOvernight(days=2){
  const c=cfg();if(!c.alpacaKey||!c.alpacaSecret)return {bars:[],source:"",error:"未配置Alpaca"};
