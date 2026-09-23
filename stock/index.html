@@ -75,7 +75,7 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 /* MinuteLedger Web v1.1.0 | 2026-09-23 | Unified 24H */
 (()=>{
 const WATCH=[["TSLA","Tesla"],["AAPL","Apple"],["MSFT","Microsoft"],["QQQ","QQQ"],["SOXX","SOXX"]];
-const $=s=>document.querySelector(s), $=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s), qsa=s=>[...document.querySelectorAll(s)];
 const el={status:$("#status"),watch:$("#watch"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed")};
 const ctx=el.canvas.getContext("2d");
 let S={symbol:"SOXX",name:"SOXX",range:"day",session:"all",bars:[],raw:[],prevClose:null,hover:null,viewA:0,viewB:1,sources:[]};
@@ -244,8 +244,8 @@ async function copyJson(){
 el.wrap.addEventListener("pointermove",e=>hover(e.clientX,e.clientY));el.wrap.addEventListener("pointerleave",()=>{S.hover=null;el.tip.style.display="none";draw()});
 el.wrap.addEventListener("touchmove",e=>{if(e.touches.length===1){e.preventDefault();hover(e.touches[0].clientX,e.touches[0].clientY)}},{passive:false});el.wrap.addEventListener("touchend",()=>{el.tip.style.display="none";S.hover=null;draw()});
 function renderWatch(){el.watch.innerHTML="";for(const [s,n] of WATCH){const b=document.createElement("button");b.textContent=s;b.classList.toggle("active",s===S.symbol);b.onclick=()=>{S.symbol=s;S.name=n;renderWatch();refresh()};el.watch.appendChild(b)}}
-$(".ranges button").forEach(b=>b.onclick=()=>{$(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");S.range=b.dataset.range;applyRange()});
-$(".sessions button").forEach(b=>b.onclick=()=>{$(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");S.session=b.dataset.session;applyRange()});
+qsa(".ranges button").forEach(b=>b.onclick=()=>{qsa(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");S.range=b.dataset.range;applyRange()});
+qsa(".sessions button").forEach(b=>b.onclick=()=>{qsa(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");S.session=b.dataset.session;applyRange()});
 $("#refresh").onclick=refresh;$("#copyJson").onclick=copyJson;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};window.addEventListener("resize",resize);
 
 window.MinuteLedgerAPI={
