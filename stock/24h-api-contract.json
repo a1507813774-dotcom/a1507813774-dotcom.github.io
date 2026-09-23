@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "updated": "2026-09-23",
+  "timezone": "America/New_York",
+  "endpoint": "GET /api/market/candles",
+  "query": {
+    "symbol": "SOXX",
+    "interval": "1m",
+    "range": "7d",
+    "session": "all"
+  },
+  "sessions": {
+    "overnight": "20:00-04:00 ET",
+    "premarket": "04:00-09:30 ET",
+    "regular": "09:30-16:00 ET",
+    "afterhours": "16:00-20:00 ET"
+  },
+  "response": {
+    "source": "provider name",
+    "complete24h": true,
+    "previousClose": 0,
+    "candles": [
+      {
+        "t": "ISO-8601 timestamp or epoch milliseconds",
+        "o": 0,
+        "h": 0,
+        "l": 0,
+        "c": 0,
+        "v": 0,
+        "source": "provider name",
+        "session": "overnight|premarket|regular|afterhours"
+      }
+    ]
+  },
+  "browser_api": [
+    "window.MinuteLedger24H.getPayload()",
+    "window.MinuteLedger24H.getCandles()",
+    "window.MinuteLedger24H.loadSymbol('NVDA')",
+    "window.MinuteLedger24H.refresh()"
+  ]
+}
