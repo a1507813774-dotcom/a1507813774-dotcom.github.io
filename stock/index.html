@@ -28,8 +28,8 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 <body>
 <div class="wrap">
 <header>
-  <div><div class="title">分时记录台</div><div class="sub">Web · 24H统一行情 · 夜盘→盘后 · 数据缓存于本机</div></div>
-  <div class="actions"><button id="copyJson">复制JSON</button><button id="refresh">刷新</button><button id="settingsBtn">设置</button></div>
+  <div><div class="title">分时记录台</div><div class="sub">Web · 24H统一行情 · 夜盘→盘前→日盘→盘后</div></div>
+  <div class="actions"><button id="exportBtn">JSON</button><button id="refresh">刷新</button><button id="settingsBtn">设置</button></div>
 </header>
 
 <div class="status" id="status"><span class="dot"></span>正在读取真实行情…</div>
@@ -46,7 +46,7 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 
 <div class="ranges">
   <button data-range="1h">1小时</button>
-  <button class="active" data-range="day">24小时</button>
+  <button class="active" data-range="24h">24小时</button>
   <button data-range="5d">5日</button>
 </div>
 
@@ -70,16 +70,16 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
   <div class="field"><label>Alpaca Secret（仅保存在此浏览器本机）</label><input id="alpacaSecret" type="password" autocomplete="off"></div>
   <div class="field"><label>夜盘 Feed</label><select id="alpacaFeed"><option value="overnight">overnight（衍生夜盘，兼容性优先）</option><option value="boats">boats（Blue Ocean ATS）</option></select></div>
   <div class="settingsBtns"><button class="primary" id="save">保存并刷新</button><button id="close">关闭</button></div>
-  <div class="note">页面统一为 24H 数据模型：夜盘 20:00–04:00、盘前 04:00–09:30、常规 09:30–16:00、盘后 16:00–20:00（ET）。Yahoo 作为 04:00–20:00 备用源；Alpaca BOATS/Overnight 补 20:00–04:00。自定义 API 优先级最高，格式：<b>GET /api/market/candles?symbol=SOXX&amp;interval=1&amp;range=5d&amp;session=24h</b>，返回 candles[{t,o,h,l,c,v,session,source}]。</div>
+  <div class="note">页面统一为 24H 数据模型：夜盘 20:00–04:00、盘前 04:00–09:30、常规 09:30–16:00、盘后 16:00–20:00（ET）。Yahoo 作为 04:00–20:00 备用源；Alpaca BOATS/Overnight 补 20:00–04:00。自定义 API 优先级最高，格式：<b>GET /api/market/candles?symbol=SOXX&amp;interval=1m&amp;range=7d&amp;session=all</b>，返回 candles[{t,o,h,l,c,v,session,source}]。</div>
 </section>
 </div>
 
 <script>
-/* MinuteLedger Web v2.0.0 | 2026-09-23 */
+/* MinuteLedger Web v2.0.1 | 2026-09-23 */
 (()=>{
-const VERSION="2.0.0";
+const VERSION="2.0.1";
 const WATCH=[["SOXX","SOXX"],["NVDA","NVIDIA"],["MU","Micron"],["SNDK","SanDisk"],["TSM","TSMC"],["AMD","AMD"],["AVGO","Broadcom"],["INTC","Intel"],["MRVL","Marvell"],["DELL","Dell"],["QQQ","QQQ"],["TSLA","Tesla"]];
-const $=s=>document.querySelector(s), $=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
 const el={status:$("#status"),watch:$("#watch"),coverage:$("#coverage"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed"),symbolInput:$("#symbolInput")};
 const ctx=el.canvas.getContext("2d");
 let S={symbol:"SOXX",name:"SOXX",range:"24h",bars:[],raw:[],prevClose:null,hover:null,viewA:0,viewB:1,sourceMeta:{}};
@@ -276,14 +276,14 @@ function loadSymbol(s,n){
  if(!/^[A-Z0-9.^-]{1,12}$/.test(s)){setStatus("股票代码格式无效",true);return}
  S.symbol=s;S.name=n||s;el.symbolInput.value=s;renderWatch();refresh();
 }
-$(".ranges button").forEach(b=>b.onclick=()=>{$(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");S.range=b.dataset.range;applyRange()});
+all(".ranges button").forEach(b=>b.onclick=()=>{all(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");all(".sessions button").forEach(x=>x.classList.toggle("active",b.dataset.range==="24h"&&x.dataset.session==="all"));S.range=b.dataset.range;applyRange()});\nall(".sessions button").forEach(b=>b.onclick=()=>{all(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const r=b.dataset.session==="all"?"24h":b.dataset.session;S.range=r;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===r));applyRange()});
 $("#refresh").onclick=refresh;$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};
 $("#loadSymbol").onclick=()=>loadSymbol(el.symbolInput.value);el.symbolInput.addEventListener("keydown",e=>{if(e.key==="Enter")loadSymbol(el.symbolInput.value)});
 window.addEventListener("resize",resize);
 
 const qs=new URLSearchParams(location.search),qSym=qs.get("symbol"),qRange=qs.get("range");
 if(qSym&&/^[A-Za-z0-9.^-]{1,12}$/.test(qSym)){S.symbol=qSym.toUpperCase();S.name=S.symbol}
-if(["1h","24h","overnight","premarket","regular","afterhours","5d"].includes(qRange)){S.range=qRange;$(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===qRange))}
+if(["1h","24h","overnight","premarket","regular","afterhours","5d"].includes(qRange)){S.range=qRange;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===qRange));all(".sessions button").forEach(x=>x.classList.toggle("active",(qRange==="24h"&&x.dataset.session==="all")||x.dataset.session===qRange))}
 loadCfg();el.symbolInput.value=S.symbol;renderWatch();resize();refresh();
 })();
 </script>
