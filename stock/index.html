@@ -70,19 +70,19 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
   <div class="field"><label>Alpaca Secret（仅保存在此浏览器本机）</label><input id="alpacaSecret" type="password" autocomplete="off"></div>
   <div class="field"><label>夜盘 Feed</label><select id="alpacaFeed"><option value="overnight">overnight（衍生夜盘，兼容性优先）</option><option value="boats">boats（Blue Ocean ATS）</option></select></div>
   <div class="settingsBtns"><button class="primary" id="save">保存并刷新</button><button id="close">关闭</button></div>
-  <div class="note">页面统一为 24H 数据模型：夜盘 20:00–04:00、盘前 04:00–09:30、常规 09:30–16:00、盘后 16:00–20:00（ET）。Yahoo 作为 04:00–20:00 备用源；Alpaca BOATS/Overnight 补 20:00–04:00。自定义 API 优先级最高，格式：<b>GET /api/market/candles?symbol=SOXX&amp;interval=1m&amp;range=7d&amp;session=all</b>，返回 candles[{t,o,h,l,c,v,session,source}]。</div>
+  <div class="note">页面统一为 24H 数据模型；首屏采用“缓存立即显示 + 2天快速刷新 + 5日按需补历史”：夜盘 20:00–04:00、盘前 04:00–09:30、常规 09:30–16:00、盘后 16:00–20:00（ET）。Yahoo 作为 04:00–20:00 备用源；Alpaca BOATS/Overnight 补 20:00–04:00。自定义 API 优先级最高，格式：<b>GET /api/market/candles?symbol=SOXX&amp;interval=1m&amp;range=7d&amp;session=all</b>，返回 candles[{t,o,h,l,c,v,session,source}]。</div>
 </section>
 </div>
 
 <script>
-/* MinuteLedger Web v2.0.1 | 2026-09-23 */
+/* MinuteLedger Web v2.1.0 | 2026-09-23 */
 (()=>{
-const VERSION="2.0.1";
+const VERSION="2.1.0";
 const WATCH=[["SOXX","SOXX"],["NVDA","NVIDIA"],["MU","Micron"],["SNDK","SanDisk"],["TSM","TSMC"],["AMD","AMD"],["AVGO","Broadcom"],["INTC","Intel"],["MRVL","Marvell"],["DELL","Dell"],["QQQ","QQQ"],["TSLA","Tesla"]];
 const $=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
 const el={status:$("#status"),watch:$("#watch"),coverage:$("#coverage"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed"),symbolInput:$("#symbolInput")};
 const ctx=el.canvas.getContext("2d");
-let S={symbol:"SOXX",name:"SOXX",range:"24h",bars:[],raw:[],prevClose:null,hover:null,viewA:0,viewB:1,sourceMeta:{}};
+let S={symbol:"SOXX",name:"SOXX",range:"24h",bars:[],raw:[],prevClose:null,hover:null,viewA:0,viewB:1,sourceMeta:{},historyDays:0,refreshing:false};
 
 function cfg(){try{return JSON.parse(localStorage.getItem("minuteledger_cfg")||"{}")}catch{return {}}}
 function saveCfg(){localStorage.setItem("minuteledger_cfg",JSON.stringify({apiBase:el.apiBase.value.trim().replace(/\/$/,""),alpacaKey:el.alpacaKey.value.trim(),alpacaSecret:el.alpacaSecret.value.trim(),alpacaFeed:el.alpacaFeed.value}))}
@@ -92,6 +92,18 @@ function cacheKey(){return "minuteledger_24h_cache_"+S.symbol}
 function saveCache(data){try{localStorage.setItem(cacheKey(),JSON.stringify({at:Date.now(),version:VERSION,...data}))}catch{}}
 function loadCache(){try{return JSON.parse(localStorage.getItem(cacheKey())||"null")}catch{return null}}
 function fmt(x,d=2){return Number.isFinite(x)?x.toFixed(d):"—"}
+async function fetchTimed(url,opts={},ms=3500){
+ const ac=new AbortController(),timer=setTimeout(()=>ac.abort(),ms);
+ try{return await fetch(url,{...opts,signal:ac.signal})}
+ finally{clearTimeout(timer)}
+}
+function useCacheInstant(){
+ const c=loadCache();
+ if(!c?.bars?.length)return false;
+ S.raw=c.bars.map(x=>norm(x,x.source)).filter(Boolean);S.prevClose=c.prevClose;S.sourceMeta=c.sourceMeta||{cache:"本机缓存"};S.historyDays=c.historyDays||2;
+ applyRange();updateCoverage();publishData();setStatus("已立即显示本机缓存 · 正在后台刷新最新行情");
+ return true;
+}
 
 function etParts(ts){
  const p={};
@@ -131,29 +143,42 @@ async function fetchCustom(){
  const bars=j.candles.map(x=>norm(x,j.source||"24H API")).filter(Boolean);
  return {bars,prevClose:Number.isFinite(+j.previousClose)?+j.previousClose:null,source:j.source||"24H API",complete24h:!!j.complete24h};
 }
-async function fetchYahoo(){
- const now=Math.floor(Date.now()/1000),from=now-8*86400;
- const target="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(S.symbol)+"?period1="+from+"&period2="+now+"&interval=1m&includePrePost=true&events=div%2Csplits";
- const urls=["https://api.allorigins.win/raw?url="+encodeURIComponent(target),"https://api.allorigins.win/get?url="+encodeURIComponent(target)];
- let lastErr;
- for(const u of urls){try{
-   const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);
-   let j=await r.json();if(j.contents)j=JSON.parse(j.contents);const z=j?.chart?.result?.[0];if(!z)throw new Error("Yahoo无数据");
-   const q=z.indicators?.quote?.[0]||{},ts=z.timestamp||[],bars=[];
-   for(let i=0;i<ts.length;i++){const c=+q.close?.[i];if(!Number.isFinite(c))continue;const t=ts[i]*1000;const s=sessionFor(t);if(s==="overnight")continue;bars.push(norm({t,o:+q.open?.[i]||c,h:+q.high?.[i]||c,l:+q.low?.[i]||c,c,v:+q.volume?.[i]||0,source:"Yahoo",session:s},"Yahoo"))}
-   return {bars,prevClose:+z.meta?.chartPreviousClose||+z.meta?.previousClose||null,source:"Yahoo"};
- }catch(e){lastErr=e}}
- throw lastErr||new Error("Yahoo读取失败");
+async function parseYahooResponse(r,sourceLabel){
+ if(!r.ok)throw new Error("HTTP "+r.status);
+ let j=await r.json();if(j.contents)j=JSON.parse(j.contents);
+ const z=j?.chart?.result?.[0];if(!z)throw new Error("Yahoo无数据");
+ const q=z.indicators?.quote?.[0]||{},ts=z.timestamp||[],bars=[];
+ for(let i=0;i<ts.length;i++){
+   const cc=+q.close?.[i];if(!Number.isFinite(cc))continue;
+   const t=ts[i]*1000,s=sessionFor(t);if(s==="overnight")continue;
+   bars.push(norm({t,o:+q.open?.[i]||cc,h:+q.high?.[i]||cc,l:+q.low?.[i]||cc,c:cc,v:+q.volume?.[i]||0,source:sourceLabel,session:s},sourceLabel));
+ }
+ return {bars,prevClose:+z.meta?.chartPreviousClose||+z.meta?.previousClose||null,source:sourceLabel};
 }
-async function fetchAlpacaOvernight(){
+async function fetchYahoo(days=2){
+ const now=Math.floor(Date.now()/1000),from=now-days*86400;
+ const target="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(S.symbol)+"?period1="+from+"&period2="+now+"&interval=1m&includePrePost=true&events=div%2Csplits";
+ try{
+   const r=await fetchTimed(target,{cache:"no-store"},1200);
+   return await parseYahooResponse(r,"Yahoo直连");
+ }catch(_){}
+ const proxyUrls=[
+   "https://api.allorigins.win/raw?url="+encodeURIComponent(target),
+   "https://api.allorigins.win/get?url="+encodeURIComponent(target)
+ ];
+ try{
+   return await Promise.any(proxyUrls.map(async u=>parseYahooResponse(await fetchTimed(u,{cache:"no-store"},3500),"Yahoo代理")));
+ }catch(e){throw new Error("Yahoo快速通道超时/失败")}
+}
+async function fetchAlpacaOvernight(days=2){
  const c=cfg();if(!c.alpacaKey||!c.alpacaSecret)return {bars:[],source:"",error:"未配置Alpaca"};
- const start=new Date(Date.now()-8*86400000).toISOString(),end=new Date().toISOString();
+ const start=new Date(Date.now()-days*86400000).toISOString(),end=new Date().toISOString();
  const feeds=[c.alpacaFeed||"overnight",(c.alpacaFeed||"overnight")==="overnight"?"boats":"overnight"];
  let lastErr;
  for(const feed of feeds){try{
    const u=new URL("https://data.alpaca.markets/v2/stocks/"+encodeURIComponent(S.symbol)+"/bars");
    u.searchParams.set("timeframe","1Min");u.searchParams.set("start",start);u.searchParams.set("end",end);u.searchParams.set("limit","10000");u.searchParams.set("sort","asc");u.searchParams.set("feed",feed);u.searchParams.set("adjustment","raw");
-   const r=await fetch(u,{headers:{"APCA-API-KEY-ID":c.alpacaKey,"APCA-API-SECRET-KEY":c.alpacaSecret,"Accept":"application/json"}});
+   const r=await fetchTimed(u,{headers:{"APCA-API-KEY-ID":c.alpacaKey,"APCA-API-SECRET-KEY":c.alpacaSecret,"Accept":"application/json"}},4000);
    if(!r.ok)throw new Error(feed+" "+r.status);
    const j=await r.json();
    const bars=(j.bars||[]).map(x=>norm({t:x.t,o:x.o,h:x.h,l:x.l,c:x.c,v:x.v,source:feed.toUpperCase(),session:"overnight"},feed.toUpperCase())).filter(x=>x&&x.session==="overnight");
@@ -195,29 +220,39 @@ function exportJson(){
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=S.symbol+"_24h_"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
-async function refresh(){
- setStatus("正在读取 "+S.symbol+" 24h 真实分钟行情…");
+async function refresh(days=2){
+ if(S.refreshing)return;
+ S.refreshing=true;
+ const hadCache=S.raw.length>0;
+ setStatus((hadCache?"缓存已显示 · ":"")+"正在刷新 "+S.symbol+" 最新24h行情…");
  try{
    let main=null,customErr="";
    try{main=await fetchCustom()}catch(e){customErr=e.message}
    let on={bars:[],source:"",error:""};
-   if(main?.complete24h){S.raw=main.bars;S.prevClose=main.prevClose||S.raw[0]?.o||null;S.sourceMeta={all:main.source}}
-   else{
-     if(!main)main=await fetchYahoo();
-     on=await fetchAlpacaOvernight();
-     S.raw=mergeBars(main.bars,on.bars);
-     S.prevClose=main.prevClose||S.raw[0]?.o||null;
-     S.sourceMeta={core:main.source,overnight:on.source||""};
+   if(main?.complete24h){
+     S.raw=main.bars;S.prevClose=main.prevClose||S.raw[0]?.o||S.prevClose||null;S.sourceMeta={all:main.source};S.historyDays=Math.max(S.historyDays,days);
+   }else{
+     const jobs=[];
+     jobs.push(main?Promise.resolve(main):fetchYahoo(days));
+     jobs.push(fetchAlpacaOvernight(days));
+     const [mr,or]=await Promise.allSettled(jobs);
+     if(mr.status==="fulfilled")main=mr.value;
+     if(or.status==="fulfilled")on=or.value;
+     if(!main && !on.bars?.length)throw new Error("所有快速行情源均失败");
+     const fresh=mergeBars(main?.bars||[],on.bars||[]);
+     S.raw=hadCache?mergeBars(S.raw,fresh):fresh;
+     S.prevClose=main?.prevClose||S.prevClose||S.raw[0]?.o||null;
+     S.sourceMeta={core:main?.source||S.sourceMeta.core||"",overnight:on.source||S.sourceMeta.overnight||""};
+     S.historyDays=Math.max(S.historyDays,days);
    }
-   saveCache({bars:S.raw,prevClose:S.prevClose,sourceMeta:S.sourceMeta});
+   saveCache({bars:S.raw,prevClose:S.prevClose,sourceMeta:S.sourceMeta,historyDays:S.historyDays});
    applyRange();updateCoverage();publishData();
-   const c=countSessions(S.raw),night=c.overnight?("夜盘 "+c.overnight+"根"):"夜盘未连接";
-   setStatus((S.sourceMeta.all||[S.sourceMeta.overnight,S.sourceMeta.core].filter(Boolean).join(" + "))+" · 24h统一序列 · "+S.raw.length+"根 · "+night+(customErr?" · 统一API回退":""));
+   const cc=countSessions(S.raw),night=cc.overnight?("夜盘 "+cc.overnight+"根"):"夜盘未连接";
+   setStatus((S.sourceMeta.all||[S.sourceMeta.overnight,S.sourceMeta.core].filter(Boolean).join(" + "))+" · 已更新 · "+S.raw.length+"根 · "+night+(customErr?" · 统一API回退":""));
  }catch(e){
-   const c=loadCache();
-   if(c?.bars?.length){S.raw=c.bars.map(x=>norm(x,x.source)).filter(Boolean);S.prevClose=c.prevClose;S.sourceMeta=c.sourceMeta||{cache:"本机缓存"};applyRange();updateCoverage();publishData();setStatus("网络读取失败，已显示本机24h缓存 · "+new Date(c.at).toLocaleString("zh-CN"),true)}
+   if(S.raw.length){applyRange();updateCoverage();publishData();setStatus("刷新失败，继续显示缓存 · "+e.message,true)}
    else{S.raw=[];applyRange();updateCoverage();publishData();setStatus("24h行情读取失败："+e.message,true)}
- }
+ }finally{S.refreshing=false}
 }
 
 function applyRange(){
@@ -274,9 +309,9 @@ function renderWatch(){
 function loadSymbol(s,n){
  s=String(s||"").trim().toUpperCase();
  if(!/^[A-Z0-9.^-]{1,12}$/.test(s)){setStatus("股票代码格式无效",true);return}
- S.symbol=s;S.name=n||s;el.symbolInput.value=s;renderWatch();refresh();
+ S.symbol=s;S.name=n||s;S.raw=[];S.bars=[];S.historyDays=0;el.symbolInput.value=s;renderWatch();useCacheInstant();refresh(2);
 }
-all(".ranges button").forEach(b=>b.onclick=()=>{all(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");all(".sessions button").forEach(x=>x.classList.toggle("active",b.dataset.range==="24h"&&x.dataset.session==="all"));S.range=b.dataset.range;applyRange()});\nall(".sessions button").forEach(b=>b.onclick=()=>{all(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const r=b.dataset.session==="all"?"24h":b.dataset.session;S.range=r;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===r));applyRange()});
+all(".ranges button").forEach(b=>b.onclick=()=>{all(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");all(".sessions button").forEach(x=>x.classList.toggle("active",b.dataset.range==="24h"&&x.dataset.session==="all"));S.range=b.dataset.range;applyRange();if(S.range==="5d"&&S.historyDays<6)refresh(8)});\nall(".sessions button").forEach(b=>b.onclick=()=>{all(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const r=b.dataset.session==="all"?"24h":b.dataset.session;S.range=r;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===r));applyRange()});
 $("#refresh").onclick=refresh;$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};
 $("#loadSymbol").onclick=()=>loadSymbol(el.symbolInput.value);el.symbolInput.addEventListener("keydown",e=>{if(e.key==="Enter")loadSymbol(el.symbolInput.value)});
 window.addEventListener("resize",resize);
@@ -284,7 +319,7 @@ window.addEventListener("resize",resize);
 const qs=new URLSearchParams(location.search),qSym=qs.get("symbol"),qRange=qs.get("range");
 if(qSym&&/^[A-Za-z0-9.^-]{1,12}$/.test(qSym)){S.symbol=qSym.toUpperCase();S.name=S.symbol}
 if(["1h","24h","overnight","premarket","regular","afterhours","5d"].includes(qRange)){S.range=qRange;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===qRange));all(".sessions button").forEach(x=>x.classList.toggle("active",(qRange==="24h"&&x.dataset.session==="all")||x.dataset.session===qRange))}
-loadCfg();el.symbolInput.value=S.symbol;renderWatch();resize();refresh();
+loadCfg();el.symbolInput.value=S.symbol;renderWatch();resize();useCacheInstant();refresh(2);
 })();
 </script>
 </body>
