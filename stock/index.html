@@ -138,7 +138,7 @@ async function fetchCustom(){
  const c=cfg();if(!c.apiBase)return null;
  const u=new URL(c.apiBase+"/api/market/candles");
  u.searchParams.set("symbol",S.symbol);u.searchParams.set("interval","1m");u.searchParams.set("range","7d");u.searchParams.set("session","all");
- const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("统一API "+r.status);
+ const r=await fetchTimed(u,{cache:"no-store"},3000);if(!r.ok)throw new Error("统一API "+r.status);
  const j=await r.json();if(!Array.isArray(j.candles))throw new Error("统一API缺少 candles[]");
  const bars=j.candles.map(x=>norm(x,j.source||"24H API")).filter(Boolean);
  return {bars,prevClose:Number.isFinite(+j.previousClose)?+j.previousClose:null,source:j.source||"24H API",complete24h:!!j.complete24h};
@@ -313,7 +313,7 @@ function loadSymbol(s,n){
 }
 all(".ranges button").forEach(b=>b.onclick=()=>{all(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");all(".sessions button").forEach(x=>x.classList.toggle("active",b.dataset.range==="24h"&&x.dataset.session==="all"));S.range=b.dataset.range;applyRange();if(S.range==="5d"&&S.historyDays<6)refresh(8)});
 all(".sessions button").forEach(b=>b.onclick=()=>{all(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const r=b.dataset.session==="all"?"24h":b.dataset.session;S.range=r;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===r));applyRange()});
-$("#refresh").onclick=refresh;$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};
+$("#refresh").onclick=()=>refresh(2);$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};
 $("#loadSymbol").onclick=()=>loadSymbol(el.symbolInput.value);el.symbolInput.addEventListener("keydown",e=>{if(e.key==="Enter")loadSymbol(el.symbolInput.value)});
 window.addEventListener("resize",resize);
 
