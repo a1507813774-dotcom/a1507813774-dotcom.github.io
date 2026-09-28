@@ -12049,8 +12049,8 @@
 {"symbol":"DELL","t":1790255520000,"o":539.26,"h":539.26,"l":538.65,"c":538.95,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-24"}
 {"symbol":"DELL","t":1790255580000,"o":539.0,"h":539.0,"l":538.5,"c":538.8,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-24"}
 {"symbol":"DELL","t":1790255640000,"o":538.8,"h":538.8,"l":538.8,"c":538.8,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-24"}
-{"symbol":"DELL","t":1790256600000,"o":535.969970703125,"h":535.97998046875,"l":533.0,"c":535.530029296875,"v":181888.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
-{"symbol":"DELL","t":1790256660000,"o":534.5750122070312,"h":542.0,"l":533.0,"c":538.7999877929688,"v":190704.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
+{"symbol":"DELL","t":1790256600000,"o":535.969970703125,"h":535.97998046875,"l":533.0,"c":535.530029296875,"v":181682.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
+{"symbol":"DELL","t":1790256660000,"o":534.5750122070312,"h":542.0,"l":533.0,"c":538.7999877929688,"v":190910.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
 {"symbol":"DELL","t":1790256720000,"o":539.1199951171875,"h":540.25,"l":536.0,"c":538.0,"v":37805.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
 {"symbol":"DELL","t":1790256780000,"o":538.0,"h":539.0,"l":535.030029296875,"c":536.2384033203125,"v":37070.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
 {"symbol":"DELL","t":1790256840000,"o":536.4586181640625,"h":539.3612060546875,"l":535.4199829101562,"c":539.3612060546875,"v":42812.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-24"}
@@ -12648,8 +12648,8 @@
 {"symbol":"DELL","t":1790341920000,"o":548.418,"h":548.418,"l":548.35,"c":548.35,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-25"}
 {"symbol":"DELL","t":1790341980000,"o":548.5,"h":548.72,"l":548.5,"c":548.72,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-25"}
 {"symbol":"DELL","t":1790342040000,"o":548.84,"h":549.2935,"l":548.84,"c":549.0,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-25"}
-{"symbol":"DELL","t":1790343000000,"o":546.2899780273438,"h":547.0,"l":541.235107421875,"c":545.5,"v":266318.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
-{"symbol":"DELL","t":1790343060000,"o":546.25,"h":546.5,"l":543.5999755859375,"c":543.969970703125,"v":25469.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
+{"symbol":"DELL","t":1790343000000,"o":544.2750244140625,"h":544.2750244140625,"l":543.7437744140625,"c":543.7437744140625,"v":262893.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
+{"symbol":"DELL","t":1790343060000,"o":546.25,"h":546.5,"l":543.5999755859375,"c":543.969970703125,"v":28894.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
 {"symbol":"DELL","t":1790343120000,"o":543.969970703125,"h":550.5598754882812,"l":543.0,"c":548.6702880859375,"v":59520.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
 {"symbol":"DELL","t":1790343180000,"o":549.5,"h":549.9899291992188,"l":546.0347290039062,"c":548.8541259765625,"v":56853.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
 {"symbol":"DELL","t":1790343240000,"o":548.2100219726562,"h":551.818115234375,"l":547.0001220703125,"c":551.7899780273438,"v":50636.0,"session":"regular","source":"Yahoo","tradingDate":"2026-09-25"}
@@ -13142,5 +13142,12 @@
 {"symbol":"DELL","t":1790586480000,"o":548.51,"h":548.51,"l":548.51,"c":548.51,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"DELL","t":1790586600000,"o":548.0,"h":548.01,"l":547.0,"c":547.0,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"DELL","t":1790587140000,"o":546.6612,"h":546.6612,"l":546.6612,"c":546.6612,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790588340000,"o":548.0842,"h":548.0842,"l":548.0842,"c":548.0842,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790588640000,"o":549.74,"h":549.74,"l":549.74,"c":549.74,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790588700000,"o":549.98,"h":550.0,"l":549.97,"c":550.0,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"DELL","t":1790588820000,"o":550.05,"h":550.05,"l":550.04,"c":550.04,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790588880000,"o":550.0,"h":550.0,"l":550.0,"c":550.0,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"DELL","t":1790588891000,"o":550.0,"h":550.0,"l":550.0,"c":550.0,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790589420000,"o":550.8,"h":550.8,"l":550.8,"c":550.8,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790589480000,"o":550.34,"h":550.34,"l":550.34,"c":550.34,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"DELL","t":1790589570000,"o":550.43,"h":550.43,"l":550.43,"c":550.43,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}

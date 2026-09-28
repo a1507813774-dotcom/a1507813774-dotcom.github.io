@@ -15118,7 +15118,7 @@
 {"symbol":"AVGO","t":1790196540000,"o":355.17,"h":355.17,"l":355.05,"c":355.05,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
 {"symbol":"AVGO","t":1790196600000,"o":355.0997,"h":355.1,"l":355.0659,"c":355.1,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
 {"symbol":"AVGO","t":1790196660000,"o":355.071,"h":355.1394,"l":355.066,"c":355.1394,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
-{"symbol":"AVGO","t":1790196720000,"o":355.1381,"h":355.15,"l":355.071,"c":355.11,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
+{"symbol":"AVGO","t":1790196720000,"o":355.1,"h":355.15,"l":355.071,"c":355.11,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
 {"symbol":"AVGO","t":1790196780000,"o":347.9267,"h":360.795,"l":347.9267,"c":355.14,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
 {"symbol":"AVGO","t":1790196840000,"o":355.15,"h":355.19,"l":354.99,"c":354.99,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
 {"symbol":"AVGO","t":1790196900000,"o":355.1299,"h":355.13,"l":355.1176,"c":355.13,"v":0.0,"session":"afterhours","source":"Yahoo","tradingDate":"2026-09-23"}
@@ -17338,4 +17338,14 @@
 {"symbol":"AVGO","t":1790589060000,"o":348.39,"h":348.54,"l":348.3157,"c":348.3157,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"AVGO","t":1790589120000,"o":348.5291,"h":348.54,"l":348.3157,"c":348.3157,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"AVGO","t":1790589180000,"o":348.5388,"h":348.5388,"l":348.5388,"c":348.5388,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589240000,"o":348.31,"h":348.5,"l":348.31,"c":348.4,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
 {"symbol":"AVGO","t":1790589259000,"o":348.5,"h":348.5,"l":348.5,"c":348.5,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589300000,"o":348.33,"h":348.42,"l":348.3,"c":348.42,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589360000,"o":348.54,"h":348.54,"l":348.3125,"c":348.4,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589420000,"o":348.54,"h":348.54,"l":348.1,"c":348.1,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589480000,"o":348.1,"h":348.5144,"l":348.1,"c":348.1,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589540000,"o":348.131,"h":348.3635,"l":348.131,"c":348.3635,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589600000,"o":348.18,"h":348.54,"l":348.18,"c":348.52,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589660000,"o":348.52,"h":348.55,"l":348.52,"c":348.55,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589720000,"o":348.48,"h":348.5859,"l":348.3075,"c":348.5859,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
+{"symbol":"AVGO","t":1790589813000,"o":348.54,"h":348.54,"l":348.54,"c":348.54,"v":0.0,"session":"premarket","source":"Yahoo","tradingDate":"2026-09-28"}
