@@ -91,7 +91,7 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 
 <section class="archivePanel" id="archivePanel">
   <h2>长期分钟数据归档与统计</h2>
-  <div class="note">IndexedDB 为长期数据库，localStorage 继续用于首屏缓存。盘前固定为美东 04:00–09:30；统计使用实际 1 分钟 K，不降采样。历史补齐不使用 Massive。</div>
+  <div class="note">IndexedDB 为本机长期缓存，localStorage 继续用于首屏缓存；GitHub cloud_data 为网页与 ChatGPT 共用的远端归档。盘前固定为美东 04:00–09:30；统计使用实际 1 分钟 K，不降采样。历史补齐不使用 Massive。</div>
 
   <h3>补历史 / 数据管理</h3>
   <div class="archiveGrid three">
@@ -105,9 +105,11 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
     <button id="exportHistoryJson">导出 JSON</button>
     <button id="exportHistoryCsv">导出 CSV</button>
     <button id="importHistoryBtn">导入历史数据</button>
+    <button id="cloudSyncBtn">同步共享云端</button>
     <input id="importHistoryFile" type="file" accept=".json,.csv,application/json,text/csv" style="display:none">
   </div>
   <div class="archiveMsg" id="archiveStatus">长期数据库初始化中…</div>
+  <div class="archiveMsg" id="cloudArchiveStatus">共享云端：正在读取覆盖情况…</div>
   <div class="tableWrap" style="margin-top:10px"><table class="archiveTable" id="archiveSummaryTable"><thead><tr><th>股票</th><th>交易日</th><th>最早</th><th>最新</th><th>分钟K</th><th>盘前完整</th></tr></thead><tbody><tr><td colspan="6">—</td></tr></tbody></table></div>
 
   <h3>盘前分位统计</h3>
@@ -128,9 +130,9 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 </div>
 
 <script>
-/* MinuteLedger Web v3.0.0 | 2026-09-28 */
+/* MinuteLedger Web v3.1.0 | 2026-09-28 */
 (()=>{
-const VERSION="3.0.0";
+const VERSION="3.1.0";
 const WATCH=[["SOXX","SOXX"],["NVDA","NVIDIA"],["MU","Micron"],["SNDK","SanDisk"],["TSM","TSMC"],["AMD","AMD"],["AVGO","Broadcom"],["INTC","Intel"],["MRVL","Marvell"],["DELL","Dell"],["QQQ","QQQ"],["TSLA","Tesla"]];
 const $=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
 const el={status:$("#status"),watch:$("#watch"),coverage:$("#coverage"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed"),symbolInput:$("#symbolInput")};
@@ -341,6 +343,73 @@ async function refresh(days=2){
  }finally{S.refreshing=false}
 }
 
+
+
+/* ===== 共享云端归档桥 v3.1.0 ===== */
+const CLOUD_MANIFEST_URL="cloud_data/manifest.json";
+let cloudManifestCache=null;
+async function fetchCloudManifest(force=false){
+ if(cloudManifestCache&&!force)return cloudManifestCache;
+ const r=await fetch(CLOUD_MANIFEST_URL+"?v="+Date.now(),{cache:"no-store"});
+ if(!r.ok)throw new Error("云端 manifest HTTP "+r.status);
+ cloudManifestCache=await r.json();return cloudManifestCache;
+}
+function cloudSetStatus(msg,kind=""){
+ const e=$("#cloudArchiveStatus");if(!e)return;e.textContent=msg;e.className="archiveMsg"+(kind?" "+kind:"");
+}
+async function cloudRefreshStatus(symbol){
+ symbol=String(symbol||$("#archiveSymbol")?.value||S.symbol).trim().toUpperCase();
+ try{
+  const m=await fetchCloudManifest(true),x=m?.symbols?.[symbol];
+  if(!x){
+   cloudSetStatus("共享云端："+symbol+" 尚未归档。可在 cloud_config.json 中加入该代码；ChatGPT 与网页读取同一 cloud_data 数据层。","warn");
+   return null;
+  }
+  const upd=m.updatedAt?new Date(m.updatedAt).toLocaleString("zh-CN"):"尚未首次采集";
+  cloudSetStatus("共享云端 "+symbol+"：分钟K "+Number(x.bars||0).toLocaleString()+" 根 · "+(x.tradingDays||0)+" 个交易日 · 盘前 "+(x.premarketDays||0)+" 日（完整 "+(x.completePremarketDays||0)+"） · 更新 "+upd+"。ChatGPT 可直接读取这些归档。",x.bars?"ok":"warn");
+  return x;
+ }catch(e){
+  cloudSetStatus("共享云端读取失败："+e.message,"bad");return null;
+ }
+}
+async function fetchCloudText(path){
+ const r=await fetch(path+"?v="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error(path+" HTTP "+r.status);return await r.text();
+}
+async function fetchCloudJson(path){
+ const r=await fetch(path+"?v="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error(path+" HTTP "+r.status);return await r.json();
+}
+async function cloudSyncSymbol(symbol){
+ symbol=String(symbol||$("#archiveSymbol")?.value||S.symbol).trim().toUpperCase();
+ if(!/^[A-Z0-9.^-]{1,12}$/.test(symbol)){cloudSetStatus("云端同步：股票代码无效","bad");return 0}
+ $("#cloudSyncBtn").disabled=true;
+ try{
+  const m=await fetchCloudManifest(true),meta=m?.symbols?.[symbol];
+  if(!meta)throw new Error(symbol+" 不在共享云端归档列表");
+  const months=meta.months||[];let total=0;
+  cloudSetStatus("正在同步 "+symbol+" 云端逐分钟归档，共 "+months.length+" 个分月文件…","warn");
+  for(let i=0;i<months.length;i++){
+   const item=months[i],txt=await fetchCloudText(item.path);
+   const rows=txt.split(/\r?\n/).filter(Boolean).map(line=>{try{return JSON.parse(line)}catch{return null}}).filter(Boolean);
+   total+=await archiveBars(symbol,rows);
+   cloudSetStatus("正在同步 "+symbol+"："+(i+1)+"/"+months.length+" · 已处理 "+total.toLocaleString()+" 根分钟K","warn");
+  }
+  await rebuildDailyForSymbol(symbol);
+  if(meta.dailyPath){
+   try{
+    const dj=await fetchCloudJson(meta.dailyPath),cloudDaily=new Map((dj.rows||[]).map(x=>[x.tradingDate,x]));
+    const local=await getDailyForSymbol(symbol);
+    const enriched=local.map(x=>{
+     const d=cloudDaily.get(x.tradingDate);return d?{...x,previousClose:Number.isFinite(+d.previousClose)?+d.previousClose:x.previousClose,regularClose:Number.isFinite(+d.regularClose)?+d.regularClose:x.regularClose}:x;
+    });
+    await putMany(ARCHIVE_DAILY,enriched);
+   }catch(_){}
+  }
+  await archiveRefreshUI();await cloudRefreshStatus(symbol);
+  cloudSetStatus("云端同步完成："+symbol+" 已合并 "+total.toLocaleString()+" 根分钟K 到本机 IndexedDB；远端原档仍保存在 GitHub，ChatGPT 可直接读取。","ok");
+  return total;
+ }catch(e){cloudSetStatus("云端同步失败："+e.message,"bad");return 0}
+ finally{$("#cloudSyncBtn").disabled=false}
+}
 
 /* ===== IndexedDB 长期归档 / 盘前统计 v3.0.0 ===== */
 const ARCHIVE_DB="MinuteLedgerArchive",ARCHIVE_DB_VERSION=1,ARCHIVE_BARS="bars",ARCHIVE_DAILY="daily";
@@ -669,7 +738,7 @@ function renderWatch(){
 function loadSymbol(s,n){
  s=String(s||"").trim().toUpperCase();
  if(!/^[A-Z0-9.^-]{1,12}$/.test(s)){setStatus("股票代码格式无效",true);return}
- S.symbol=s;S.name=n||s;S.raw=[];S.bars=[];S.historyDays=0;el.symbolInput.value=s;if($("#archiveSymbol"))$("#archiveSymbol").value=s;if($("#statSymbol"))$("#statSymbol").value=s;renderWatch();useCacheInstant();refresh(2);
+ S.symbol=s;S.name=n||s;S.raw=[];S.bars=[];S.historyDays=0;el.symbolInput.value=s;if($("#archiveSymbol"))$("#archiveSymbol").value=s;if($("#statSymbol"))$("#statSymbol").value=s;cloudRefreshStatus(s);renderWatch();useCacheInstant();refresh(2);
 }
 all(".ranges button").forEach(b=>b.onclick=()=>{all(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");all(".sessions button").forEach(x=>x.classList.toggle("active",b.dataset.range==="24h"&&x.dataset.session==="all"));S.range=b.dataset.range;applyRange();if(S.range==="5d"&&S.historyDays<6)refresh(8)});
 all(".sessions button").forEach(b=>b.onclick=()=>{all(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const r=b.dataset.session==="all"?"24h":b.dataset.session;S.range=r;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===r));applyRange()});
@@ -683,7 +752,8 @@ $("#exportHistoryCsv").onclick=()=>exportHistory("csv");
 $("#importHistoryBtn").onclick=()=>$("#importHistoryFile").click();
 $("#importHistoryFile").onchange=e=>{const f=e.target.files?.[0];if(!f)return;importHistoryFile(f).catch(err=>archiveSetStatus("导入失败："+err.message,"bad")).finally(()=>{e.target.value=""})};
 $("#runPremarketStats").onclick=()=>runPremarketStats();
-$("#archiveSymbol").addEventListener("change",()=>{$("#statSymbol").value=$("#archiveSymbol").value.trim().toUpperCase()});
+$("#cloudSyncBtn").onclick=()=>cloudSyncSymbol($("#archiveSymbol").value||S.symbol);
+$("#archiveSymbol").addEventListener("change",()=>{$("#statSymbol").value=$("#archiveSymbol").value.trim().toUpperCase();cloudRefreshStatus($("#archiveSymbol").value)});
 
 window.addEventListener("resize",resize);
 
@@ -691,7 +761,7 @@ const qs=new URLSearchParams(location.search),qSym=qs.get("symbol"),qRange=qs.ge
 if(qSym&&/^[A-Za-z0-9.^-]{1,12}$/.test(qSym)){S.symbol=qSym.toUpperCase();S.name=S.symbol}
 if(["1h","24h","overnight","premarket","regular","afterhours","5d"].includes(qRange)){S.range=qRange;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===qRange));all(".sessions button").forEach(x=>x.classList.toggle("active",(qRange==="24h"&&x.dataset.session==="all")||x.dataset.session===qRange))}
 loadCfg();el.symbolInput.value=S.symbol;renderWatch();resize();
-$("#archiveSymbol").value=S.symbol;$("#statSymbol").value=S.symbol;archiveInit().catch(e=>archiveSetStatus("IndexedDB 初始化失败："+e.message,"bad"));
+$("#archiveSymbol").value=S.symbol;$("#statSymbol").value=S.symbol;archiveInit().catch(e=>archiveSetStatus("IndexedDB 初始化失败："+e.message,"bad"));cloudRefreshStatus(S.symbol);
 useCacheInstant();refresh(2);
 })();
 </script>
