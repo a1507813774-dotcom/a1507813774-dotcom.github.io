@@ -23,6 +23,22 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
 .settings{display:none;margin-top:18px;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:16px}.settings.open{display:block}.field{margin:11px 0}.field label{display:block;color:#a5b3c5;font-size:13px;font-weight:800;margin-bottom:6px}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#091019;color:var(--text);font-size:14px}.settingsBtns{display:flex;gap:10px;margin-top:12px}.settingsBtns button{flex:1}.note{color:var(--muted);font-size:12px;line-height:1.65;margin-top:11px}.error{color:var(--red)}
 .symbolLoad{display:flex;gap:9px;margin:0 0 11px}.symbolLoad input{flex:1;min-width:0;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:#091019;color:var(--text);font-size:14px}.symbolLoad button{padding:10px 15px}.coverage{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.pill{border:1px solid var(--line);background:#0b121a;border-radius:999px;padding:5px 9px;color:#9babc0;font-size:12px;font-weight:800}.pill.ok{color:var(--green);border-color:#275c4e}.pill.warn{color:var(--amber);border-color:#6a5130}.ranges{grid-template-columns:repeat(3,1fr)}
 @media(max-width:520px){.wrap{padding:18px 12px 28px}.title{font-size:31px}.sub{font-size:13px}.actions button{padding:11px 14px}.price{font-size:43px}.canvasWrap{height:520px}.watch button{min-width:98px}.status{font-size:14px}}
+
+/* ===== 长期分钟归档与统计 v3 ===== */
+.archivePanel{margin-top:20px;border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:16px}
+.archivePanel h2{margin:0 0 6px;font-size:21px}.archivePanel h3{margin:22px 0 10px;font-size:17px;color:#cbd8e8}
+.archiveGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.archiveGrid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.archiveField label{display:block;color:#9eb0c5;font-size:12px;font-weight:800;margin-bottom:5px}
+.archiveField input,.archiveField select{width:100%;border:1px solid var(--line);border-radius:11px;padding:10px;background:#091019;color:var(--text)}
+.archiveBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.archiveBtns button{padding:10px 12px;font-size:14px}
+.archiveMsg{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#0b121a;color:#9eb0c5;font-size:12px;line-height:1.55}
+.archiveMsg.ok{color:var(--green);border-color:#275c4e}.archiveMsg.warn{color:var(--amber);border-color:#6a5130}.archiveMsg.bad{color:var(--red);border-color:#7b2d40}
+.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:12px}.archiveTable{width:100%;border-collapse:collapse;min-width:720px;font-size:12px}
+.archiveTable th,.archiveTable td{padding:8px 9px;border-bottom:1px solid #1f2d3d;text-align:right;white-space:nowrap}.archiveTable th:first-child,.archiveTable td:first-child{text-align:left}.archiveTable th{position:sticky;top:0;background:#111923;color:#a8b8ca;z-index:1}
+.archiveTable tr:last-child td{border-bottom:0}.statTitle{font-weight:900;margin:13px 0 7px}.good{color:var(--green)}.warnText{color:var(--amber)}.badText{color:var(--red)}
+.inlineCheck{display:flex;align-items:center;gap:8px;color:#a5b3c5;font-size:13px;margin:10px 0}.inlineCheck input{width:auto}
+@media(max-width:620px){.archiveGrid,.archiveGrid.three{grid-template-columns:1fr}.archivePanel{padding:13px}}
+
 </style>
 </head>
 <body>
@@ -72,12 +88,49 @@ button:active{transform:scale(.98)}button.active{background:var(--cyan);color:#0
   <div class="settingsBtns"><button class="primary" id="save">保存并刷新</button><button id="close">关闭</button></div>
   <div class="note">页面统一为 24H 数据模型；首屏采用“缓存立即显示 + 2天快速刷新 + 5日按需补历史”：夜盘 20:00–04:00、盘前 04:00–09:30、常规 09:30–16:00、盘后 16:00–20:00（ET）。Yahoo 作为 04:00–20:00 备用源；Alpaca BOATS/Overnight 补 20:00–04:00。自定义 API 优先级最高，格式：<b>GET /api/market/candles?symbol=SOXX&amp;interval=1m&amp;range=7d&amp;session=all</b>，返回 candles[{t,o,h,l,c,v,session,source}]。</div>
 </section>
+
+<section class="archivePanel" id="archivePanel">
+  <h2>长期分钟数据归档与统计</h2>
+  <div class="note">IndexedDB 为长期数据库，localStorage 继续用于首屏缓存。盘前固定为美东 04:00–09:30；统计使用实际 1 分钟 K，不降采样。历史补齐不使用 Massive。</div>
+
+  <h3>补历史 / 数据管理</h3>
+  <div class="archiveGrid three">
+    <div class="archiveField"><label>股票</label><input id="archiveSymbol" value="SOXX" maxlength="12"></div>
+    <div class="archiveField"><label>目标交易日数</label><input id="historyDaysTarget" type="number" min="1" max="1000" value="400"></div>
+    <div class="archiveField"><label>分批窗口</label><select id="historyChunkDays"><option value="7" selected>7 天（推荐）</option><option value="5">5 天</option><option value="3">3 天</option></select></div>
+  </div>
+  <div class="archiveBtns">
+    <button class="primary" id="backfillBtn">补历史</button>
+    <button id="archiveRefreshBtn">刷新数据管理</button>
+    <button id="exportHistoryJson">导出 JSON</button>
+    <button id="exportHistoryCsv">导出 CSV</button>
+    <button id="importHistoryBtn">导入历史数据</button>
+    <input id="importHistoryFile" type="file" accept=".json,.csv,application/json,text/csv" style="display:none">
+  </div>
+  <div class="archiveMsg" id="archiveStatus">长期数据库初始化中…</div>
+  <div class="tableWrap" style="margin-top:10px"><table class="archiveTable" id="archiveSummaryTable"><thead><tr><th>股票</th><th>交易日</th><th>最早</th><th>最新</th><th>分钟K</th><th>盘前完整</th></tr></thead><tbody><tr><td colspan="6">—</td></tr></tbody></table></div>
+
+  <h3>盘前分位统计</h3>
+  <div class="archiveGrid">
+    <div class="archiveField"><label>统计股票</label><input id="statSymbol" value="SOXX" maxlength="12"></div>
+    <div class="archiveField"><label>样本范围</label><select id="statLimit"><option value="400" selected>最近 400 个交易日</option><option value="200">最近 200 个交易日</option><option value="0">全部已归档交易日</option></select></div>
+  </div>
+  <label class="inlineCheck"><input id="completeOnly" type="checkbox" checked>仅使用盘前 04:00–09:29 共 330 个分钟槽全部存在的交易日</label>
+  <div class="archiveBtns"><button class="primary" id="runPremarketStats">计算盘前统计</button></div>
+  <div class="archiveMsg" id="statStatus">上涨/下跌样本按 09:30 前最后一分钟相对昨收的正负分组；所有涨跌幅均以前一交易日正式收盘价为基准。</div>
+  <div id="statOutput"></div>
+
+  <h3>开盘分位 → 盘前极值分位</h3>
+  <div class="archiveMsg">上涨组以“开盘涨幅 → 盘前最高涨幅”比较强度；下跌组以“开盘跌幅绝对强度 → 盘前最低跌幅绝对强度”比较。分位档使用 95/90/80/70/60/50/40/30/20/10/5/2。表中“同档占较弱端”= 同档样本数 ÷ 较弱端样本数。</div>
+  <div id="mappingOutput"></div>
+</section>
+
 </div>
 
 <script>
-/* MinuteLedger Web v2.1.1 | 2026-09-23 */
+/* MinuteLedger Web v3.0.0 | 2026-09-28 */
 (()=>{
-const VERSION="2.1.1";
+const VERSION="3.0.0";
 const WATCH=[["SOXX","SOXX"],["NVDA","NVIDIA"],["MU","Micron"],["SNDK","SanDisk"],["TSM","TSMC"],["AMD","AMD"],["AVGO","Broadcom"],["INTC","Intel"],["MRVL","Marvell"],["DELL","Dell"],["QQQ","QQQ"],["TSLA","Tesla"]];
 const $=s=>document.querySelector(s), all=s=>[...document.querySelectorAll(s)];
 const el={status:$("#status"),watch:$("#watch"),coverage:$("#coverage"),symbol:$("#symbol"),name:$("#name"),price:$("#price"),change:$("#change"),wrap:$("#canvasWrap"),canvas:$("#chart"),tip:$("#tip"),settings:$("#settings"),apiBase:$("#apiBase"),alpacaKey:$("#alpacaKey"),alpacaSecret:$("#alpacaSecret"),alpacaFeed:$("#alpacaFeed"),symbolInput:$("#symbolInput")};
@@ -278,6 +331,7 @@ async function refresh(days=2){
      S.historyDays=Math.max(S.historyDays,days);
    }
    saveCache({bars:S.raw,prevClose:S.prevClose,sourceMeta:S.sourceMeta,historyDays:S.historyDays});
+   try{await archiveCurrent()}catch(_){ }
    applyRange();updateCoverage();publishData();
    const cc=countSessions(S.raw),night=cc.overnight?("夜盘 "+cc.overnight+"根"):"夜盘未连接";
    setStatus((S.sourceMeta.all||[S.sourceMeta.overnight,S.sourceMeta.core].filter(Boolean).join(" + "))+" · 已更新 · "+S.raw.length+"根 · "+night+(customErr?" · 统一API回退":""));
@@ -285,6 +339,280 @@ async function refresh(days=2){
    if(S.raw.length){applyRange();updateCoverage();publishData();setStatus("刷新失败，继续显示缓存 · "+e.message,true)}
    else{S.raw=[];applyRange();updateCoverage();publishData();setStatus("24h行情读取失败："+e.message,true)}
  }finally{S.refreshing=false}
+}
+
+
+/* ===== IndexedDB 长期归档 / 盘前统计 v3.0.0 ===== */
+const ARCHIVE_DB="MinuteLedgerArchive",ARCHIVE_DB_VERSION=1,ARCHIVE_BARS="bars",ARCHIVE_DAILY="daily";
+let archiveDbPromise=null;
+function archiveSetStatus(msg,kind=""){
+ const e=$("#archiveStatus");if(!e)return;e.textContent=msg;e.className="archiveMsg"+(kind?" "+kind:"");
+}
+function statSetStatus(msg,kind=""){
+ const e=$("#statStatus");if(!e)return;e.textContent=msg;e.className="archiveMsg"+(kind?" "+kind:"");
+}
+function openArchiveDB(){
+ if(archiveDbPromise)return archiveDbPromise;
+ archiveDbPromise=new Promise((resolve,reject)=>{
+  const r=indexedDB.open(ARCHIVE_DB,ARCHIVE_DB_VERSION);
+  r.onupgradeneeded=()=>{
+   const db=r.result;
+   if(!db.objectStoreNames.contains(ARCHIVE_BARS)){
+    const s=db.createObjectStore(ARCHIVE_BARS,{keyPath:["symbol","t"]});
+    s.createIndex("symbol","symbol",{unique:false});s.createIndex("symbolDate",["symbol","tradingDate"],{unique:false});
+   }
+   if(!db.objectStoreNames.contains(ARCHIVE_DAILY)){
+    const s=db.createObjectStore(ARCHIVE_DAILY,{keyPath:["symbol","tradingDate"]});
+    s.createIndex("symbol","symbol",{unique:false});
+   }
+  };
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+ return archiveDbPromise;
+}
+function idbReq(req){return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function archiveInit(){
+ if(!("indexedDB" in window))throw new Error("当前浏览器不支持 IndexedDB");
+ await openArchiveDB();archiveSetStatus("IndexedDB 已就绪 · v"+VERSION,"ok");await archiveRefreshUI();
+}
+async function putMany(storeName,rows){
+ if(!rows?.length)return;
+ const db=await openArchiveDB();
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(storeName,"readwrite"),s=tx.objectStore(storeName);
+  for(const row of rows)s.put(row);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error("IndexedDB 写入中止"));
+ });
+}
+async function getBarsForSymbol(symbol){
+ const db=await openArchiveDB(),tx=db.transaction(ARCHIVE_BARS,"readonly"),idx=tx.objectStore(ARCHIVE_BARS).index("symbol");
+ return await idbReq(idx.getAll(IDBKeyRange.only(symbol)));
+}
+async function getDailyForSymbol(symbol){
+ const db=await openArchiveDB(),tx=db.transaction(ARCHIVE_DAILY,"readonly"),idx=tx.objectStore(ARCHIVE_DAILY).index("symbol");
+ return await idbReq(idx.getAll(IDBKeyRange.only(symbol)));
+}
+async function getAllDaily(){
+ const db=await openArchiveDB();return await idbReq(db.transaction(ARCHIVE_DAILY,"readonly").objectStore(ARCHIVE_DAILY).getAll());
+}
+async function getAllBars(){
+ const db=await openArchiveDB();return await idbReq(db.transaction(ARCHIVE_BARS,"readonly").objectStore(ARCHIVE_BARS).getAll());
+}
+function archiveBar(symbol,x){
+ return {symbol,t:+x.t,o:+x.o,h:+x.h,l:+x.l,c:+x.c,v:+x.v||0,session:x.session||sessionFor(+x.t),source:x.source||"",tradingDate:tradingDate(+x.t)};
+}
+async function archiveBars(symbol,bars){
+ const rows=(bars||[]).map(x=>archiveBar(symbol,x)).filter(x=>Number.isFinite(x.t)&&Number.isFinite(x.c));
+ await putMany(ARCHIVE_BARS,rows);
+ return rows.length;
+}
+function minuteOfET(ts){const p=etParts(ts);return p.h*60+p.min}
+async function rebuildDailyForSymbol(symbol,hintPreviousClose=null){
+ const bars=(await getBarsForSymbol(symbol)).sort((a,b)=>a.t-b.t),groups=new Map();
+ for(const b of bars){if(!groups.has(b.tradingDate))groups.set(b.tradingDate,[]);groups.get(b.tradingDate).push(b)}
+ const dates=[...groups.keys()].sort(),rows=[],regularClose=new Map();
+ for(const d of dates){
+  const a=groups.get(d),reg=a.filter(x=>x.session==="regular").sort((x,y)=>x.t-y.t);
+  if(reg.length)regularClose.set(d,reg.at(-1).c);
+ }
+ for(let i=0;i<dates.length;i++){
+  const d=dates[i],a=groups.get(d),pm=a.filter(x=>x.session==="premarket"&&minuteOfET(x.t)>=240&&minuteOfET(x.t)<570).sort((x,y)=>x.t-y.t);
+  const slots=new Set(pm.map(x=>minuteOfET(x.t))),prevDate=i>0?dates[i-1]:null;
+  let previousClose=prevDate?regularClose.get(prevDate):null;
+  if(!Number.isFinite(previousClose)&&i===dates.length-1&&Number.isFinite(+hintPreviousClose))previousClose=+hintPreviousClose;
+  rows.push({symbol,tradingDate:d,previousClose:Number.isFinite(previousClose)?previousClose:null,regularClose:regularClose.get(d)??null,premarketMinutes:slots.size,premarketComplete:slots.size===330,firstTs:a[0]?.t??null,lastTs:a.at(-1)?.t??null,barCount:a.length});
+ }
+ await putMany(ARCHIVE_DAILY,rows);return rows;
+}
+async function archiveCurrent(){
+ try{await archiveBars(S.symbol,S.raw);await rebuildDailyForSymbol(S.symbol,S.prevClose);await archiveRefreshUI()}
+ catch(e){archiveSetStatus("归档失败："+e.message,"bad")}
+}
+function ymd(ms){return new Date(ms).toISOString().slice(0,10)}
+async function parseYahooWindowResponse(r,symbol,sourceLabel){
+ if(!r.ok)throw new Error("Yahoo HTTP "+r.status);
+ let j=await r.json();if(j.contents)j=JSON.parse(j.contents);
+ const z=j?.chart?.result?.[0];if(!z)throw new Error(j?.chart?.error?.description||"Yahoo 无数据");
+ const q=z.indicators?.quote?.[0]||{},ts=z.timestamp||[],bars=[];
+ for(let i=0;i<ts.length;i++){
+  const cc=+q.close?.[i];if(!Number.isFinite(cc))continue;
+  const t=ts[i]*1000;
+  bars.push(norm({t,o:Number.isFinite(+q.open?.[i])?+q.open[i]:cc,h:Number.isFinite(+q.high?.[i])?+q.high[i]:cc,l:Number.isFinite(+q.low?.[i])?+q.low[i]:cc,c:cc,v:+q.volume?.[i]||0,source:sourceLabel,session:sessionFor(t)},sourceLabel));
+ }
+ return {bars:bars.filter(Boolean),source:sourceLabel};
+}
+async function fetchYahooWindow(symbol,startMs,endMs){
+ const target="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(symbol)+"?period1="+Math.floor(startMs/1000)+"&period2="+Math.floor(endMs/1000)+"&interval=1m&includePrePost=true&events=div%2Csplits";
+ const tries=[
+  {label:"Yahoo直连",url:target},
+  {label:"Yahoo/AllOrigins",url:"https://api.allorigins.win/raw?url="+encodeURIComponent(target)},
+  {label:"Yahoo/CorsProxy",url:"https://corsproxy.io/?url="+encodeURIComponent(target)},
+  {label:"Yahoo/CodeTabs",url:"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(target)}
+ ];
+ let last;
+ for(const p of tries){try{return await parseYahooWindowResponse(await fetchTimed(p.url,{cache:"no-store"},4500),symbol,p.label)}catch(e){last=e}}
+ throw last||new Error("Yahoo 历史分钟数据失败");
+}
+async function fetchCustomWindow(symbol,startMs,endMs){
+ const c=cfg();if(!c.apiBase)throw new Error("未配置统一 API");
+ const u=new URL(c.apiBase+"/api/market/candles");
+ u.searchParams.set("symbol",symbol);u.searchParams.set("interval","1m");u.searchParams.set("start",new Date(startMs).toISOString());u.searchParams.set("end",new Date(endMs).toISOString());u.searchParams.set("session","all");
+ const r=await fetchTimed(u,{cache:"no-store"},7000);if(!r.ok)throw new Error("统一API "+r.status);
+ const j=await r.json();if(!Array.isArray(j.candles)||!j.candles.length)throw new Error("统一API该窗口无分钟数据");
+ return {bars:j.candles.map(x=>norm(x,j.source||"24H API")).filter(Boolean),source:j.source||"24H API"};
+}
+async function fetchAlpacaWindow(symbol,startMs,endMs){
+ const c=cfg();if(!c.alpacaKey||!c.alpacaSecret)throw new Error("未配置 Alpaca");
+ const u=new URL("https://data.alpaca.markets/v2/stocks/"+encodeURIComponent(symbol)+"/bars");
+ u.searchParams.set("timeframe","1Min");u.searchParams.set("start",new Date(startMs).toISOString());u.searchParams.set("end",new Date(endMs).toISOString());u.searchParams.set("limit","10000");u.searchParams.set("sort","asc");u.searchParams.set("adjustment","raw");
+ const r=await fetchTimed(u,{headers:{"APCA-API-KEY-ID":c.alpacaKey,"APCA-API-SECRET-KEY":c.alpacaSecret,"Accept":"application/json"}},7000);
+ if(!r.ok)throw new Error("Alpaca "+r.status);
+ const j=await r.json();if(!Array.isArray(j.bars)||!j.bars.length)throw new Error("Alpaca 该窗口无分钟数据");
+ return {bars:j.bars.map(x=>norm({t:x.t,o:x.o,h:x.h,l:x.l,c:x.c,v:x.v,source:"Alpaca",session:sessionFor(new Date(x.t).getTime())},"Alpaca")).filter(Boolean),source:"Alpaca"};
+}
+async function fetchHistoryWindow(symbol,startMs,endMs){
+ const errors=[];
+ for(const fn of [fetchCustomWindow,fetchYahooWindow,fetchAlpacaWindow]){
+  try{const r=await fn(symbol,startMs,endMs);if(r?.bars?.length)return r}catch(e){errors.push(e.message)}
+ }
+ throw new Error(errors.join(" / "));
+}
+async function backfillHistory(){
+ const symbol=String($("#archiveSymbol").value||S.symbol).trim().toUpperCase(),target=Math.max(1,+$("#historyDaysTarget").value||400),chunkDays=Math.max(3,+$("#historyChunkDays").value||7);
+ if(!/^[A-Z0-9.^-]{1,12}$/.test(symbol)){archiveSetStatus("股票代码无效","bad");return}
+ $("#backfillBtn").disabled=true;
+ try{
+  let existing=await getDailyForSymbol(symbol),dateSet=new Set(existing.map(x=>x.tradingDate)),end=Date.now()+3600000,failOld=0,chunks=0,maxChunks=Math.ceil(target*2.2/chunkDays)+20;
+  archiveSetStatus("开始补 "+symbol+" 历史分钟数据；目标 "+target+" 个交易日…","warn");
+  while(dateSet.size<target&&chunks<maxChunks){
+   const start=end-chunkDays*86400000;
+   try{
+    const r=await fetchHistoryWindow(symbol,start,end);
+    if(r.bars.length){
+     await archiveBars(symbol,r.bars);
+     for(const b of r.bars)dateSet.add(tradingDate(b.t));
+     failOld=0;
+     archiveSetStatus(symbol+"：已采集约 "+dateSet.size+"/"+target+" 个交易日 · 当前窗口 "+ymd(start)+" ~ "+ymd(end)+" · "+r.source,"warn");
+    }else failOld++;
+   }catch(e){
+    failOld++;
+    archiveSetStatus(symbol+"：窗口 "+ymd(start)+" ~ "+ymd(end)+" 失败（"+e.message+"）。继续向前尝试。","warn");
+   }
+   chunks++;end=start-60000;
+   if(failOld>=4&&dateSet.size<target){
+    archiveSetStatus("停止补历史：连续 4 个旧窗口均不可用。目前约 "+dateSet.size+" 个交易日。Yahoo 的 1 分钟历史通常受时间范围限制；要达到 400 个交易日，需要可提供长期 1 分钟数据的自定义 API 或可用的 Alpaca 历史权限。程序未把缺失数据当作完整数据。","bad");
+    break;
+   }
+  }
+  await rebuildDailyForSymbol(symbol);
+  await archiveRefreshUI();
+  const finalDays=(await getDailyForSymbol(symbol)).length;
+  if(finalDays>=target)archiveSetStatus(symbol+" 补历史完成：已归档 "+finalDays+" 个交易日。","ok");
+  else if(failOld<4)archiveSetStatus(symbol+" 补历史结束：已归档 "+finalDays+" 个交易日，未达到目标 "+target+"；请检查数据源历史权限/范围。","warn");
+ }catch(e){archiveSetStatus("补历史失败："+e.message,"bad")}
+ finally{$("#backfillBtn").disabled=false}
+}
+async function archiveRefreshUI(){
+ if(!$("#archiveSummaryTable"))return;
+ const [daily,bars]=await Promise.all([getAllDaily(),getAllBars()]),m=new Map();
+ for(const d of daily){
+  if(!m.has(d.symbol))m.set(d.symbol,{symbol:d.symbol,days:0,first:d.tradingDate,last:d.tradingDate,complete:0});
+  const x=m.get(d.symbol);x.days++;if(d.tradingDate<x.first)x.first=d.tradingDate;if(d.tradingDate>x.last)x.last=d.tradingDate;if(d.premarketComplete)x.complete++;
+ }
+ const bc={};for(const b of bars)bc[b.symbol]=(bc[b.symbol]||0)+1;
+ const rows=[...m.values()].sort((a,b)=>a.symbol.localeCompare(b.symbol));
+ $("#archiveSummaryTable tbody").innerHTML=rows.length?rows.map(x=>"<tr><td>"+x.symbol+"</td><td>"+x.days+"</td><td>"+x.first+"</td><td>"+x.last+"</td><td>"+(bc[x.symbol]||0).toLocaleString()+"</td><td class='"+(x.complete===x.days?"good":"warnText")+"'>"+x.complete+"/"+x.days+"</td></tr>").join(""):'<tr><td colspan="6">暂无归档数据</td></tr>';
+}
+function downloadBlob(name,text,type){
+ const a=document.createElement("a"),u=URL.createObjectURL(new Blob([text],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+}
+async function exportHistory(format){
+ const symbol=String($("#archiveSymbol").value||S.symbol).trim().toUpperCase(),bars=(await getBarsForSymbol(symbol)).sort((a,b)=>a.t-b.t),daily=(await getDailyForSymbol(symbol)).sort((a,b)=>a.tradingDate.localeCompare(b.tradingDate));
+ if(!bars.length){archiveSetStatus(symbol+" 暂无可导出历史数据","warn");return}
+ if(format==="json"){
+  downloadBlob(symbol+"_minute_archive_"+new Date().toISOString().slice(0,10)+".json",JSON.stringify({version:VERSION,symbol,timezone:"America/New_York",exportedAt:new Date().toISOString(),bars,daily},null,2),"application/json");
+ }else{
+  const head="symbol,t,iso,o,h,l,c,v,session,source,tradingDate\n";
+  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
+  const body=bars.map(b=>[b.symbol,b.t,new Date(b.t).toISOString(),b.o,b.h,b.l,b.c,b.v,b.session,esc(b.source),b.tradingDate].join(",")).join("\n");
+  downloadBlob(symbol+"_minute_archive_"+new Date().toISOString().slice(0,10)+".csv",head+body,"text/csv");
+ }
+ archiveSetStatus(symbol+" 已导出 "+bars.length.toLocaleString()+" 根分钟K","ok");
+}
+function parseCsvLine(line){
+ const out=[];let cur="",q=false;
+ for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if(ch===","&&!q){out.push(cur);cur=""}else cur+=ch}
+ out.push(cur);return out;
+}
+async function importHistoryFile(file){
+ const text=await file.text(),rows=[];
+ if(file.name.toLowerCase().endsWith(".json")){
+  const j=JSON.parse(text),src=Array.isArray(j)?j:(j.bars||j.candles||[]);
+  for(const x of src){const symbol=String(x.symbol||j.symbol||S.symbol).toUpperCase();if(Number.isFinite(+x.t)&&Number.isFinite(+x.c))rows.push(archiveBar(symbol,x))}
+ }else{
+  const lines=text.split(/\r?\n/).filter(Boolean),hdr=parseCsvLine(lines.shift()),ix=Object.fromEntries(hdr.map((h,i)=>[h.trim(),i]));
+  for(const ln of lines){const a=parseCsvLine(ln),symbol=String(a[ix.symbol]||S.symbol).toUpperCase(),t=+(a[ix.t]||Date.parse(a[ix.iso]));if(!Number.isFinite(t))continue;rows.push(archiveBar(symbol,{t,o:+a[ix.o],h:+a[ix.h],l:+a[ix.l],c:+a[ix.c],v:+a[ix.v]||0,session:a[ix.session],source:a[ix.source]}))}
+ }
+ if(!rows.length)throw new Error("文件中没有识别到分钟K");
+ await putMany(ARCHIVE_BARS,rows);
+ for(const s of [...new Set(rows.map(x=>x.symbol))])await rebuildDailyForSymbol(s);
+ await archiveRefreshUI();archiveSetStatus("导入完成：合并/去重 "+rows.length.toLocaleString()+" 根分钟K","ok");
+}
+function quantile(values,p){
+ if(!values.length)return null;const a=[...values].sort((x,y)=>x-y),i=(a.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);
+ return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(i-lo);
+}
+const STAT_PS=[95,90,80,70,60,50,40,30,20,10,5,2];
+function pct(x){return Number.isFinite(x)?(x>=0?"+":"")+x.toFixed(2)+"%":"—"}
+function percentileRank(values,x){if(!values.length)return 0;let n=0;for(const v of values)if(v<=x)n++;return n/values.length*100}
+function bucketForRank(r){
+ for(const p of STAT_PS)if(r>=p)return p;return 0;
+}
+async function buildPremarketSamples(symbol,completeOnly,limit){
+ const [bars,daily]=await Promise.all([getBarsForSymbol(symbol),getDailyForSymbol(symbol)]),dm=new Map(daily.map(d=>[d.tradingDate,d])),groups=new Map();
+ for(const b of bars){if(b.session!=="premarket")continue;const m=minuteOfET(b.t);if(m<240||m>=570)continue;if(!groups.has(b.tradingDate))groups.set(b.tradingDate,[]);groups.get(b.tradingDate).push(b)}
+ let dates=[...groups.keys()].sort();if(limit>0)dates=dates.slice(-limit);
+ const out=[];
+ for(const d of dates){
+  const meta=dm.get(d),a=(groups.get(d)||[]).sort((x,y)=>x.t-y.t),base=+meta?.previousClose;
+  if(!a.length||!Number.isFinite(base)||base<=0)continue;if(completeOnly&&!meta?.premarketComplete)continue;
+  const open=(a[0].o/base-1)*100,high=(Math.max(...a.map(x=>x.h))/base-1)*100,low=(Math.min(...a.map(x=>x.l))/base-1)*100,last=(a.at(-1).c/base-1)*100;
+  out.push({date:d,open,high,low,last,complete:!!meta?.premarketComplete,minutes:meta?.premarketMinutes||a.length});
+ }
+ return out;
+}
+function renderStatTable(title,samples){
+ const metrics=[["盘前开盘","open"],["盘前最高","high"],["盘前最低","low"],["09:30前最后一分钟","last"]];
+ let h='<div class="statTitle">'+title+' · '+samples.length+' 日</div><div class="tableWrap"><table class="archiveTable"><thead><tr><th>阶段</th>'+STAT_PS.map(p=>"<th>前"+p+"%</th>").join("")+"</tr></thead><tbody>";
+ for(const [name,key] of metrics)h+="<tr><td>"+name+"</td>"+STAT_PS.map(p=>"<td>"+pct(quantile(samples.map(x=>x[key]),p/100))+"</td>").join("")+"</tr>";
+ return h+"</tbody></table></div>";
+}
+function renderMapping(title,samples,dir){
+ if(!samples.length)return '<div class="statTitle">'+title+' · 0 日</div>';
+ const openStrength=samples.map(x=>dir==="up"?x.open:-x.open),extStrength=samples.map(x=>dir==="up"?x.high:-x.low),rows=[];
+ const agg=new Map();
+ for(let i=0;i<samples.length;i++){
+  const ob=bucketForRank(percentileRank(openStrength,openStrength[i])),eb=bucketForRank(percentileRank(extStrength,extStrength[i]));
+  if(!ob)continue;if(!agg.has(ob))agg.set(ob,{n:0,strong:0,same:0,weak:0});const a=agg.get(ob);a.n++;
+  if(eb>ob)a.strong++;else if(eb===ob)a.same++;else a.weak++;
+ }
+ for(const p of STAT_PS){
+  const a=agg.get(p);if(!a)continue;
+  const pp=n=>(100*n/a.n).toFixed(1)+"%",sameVsWeak=a.weak?((100*a.same/a.weak).toFixed(1)+"%"):"—";
+  rows.push("<tr><td>前"+p+"%</td><td>"+a.n+"</td><td>"+a.strong+" ("+pp(a.strong)+")</td><td>"+a.same+" ("+pp(a.same)+"；占较弱端 "+sameVsWeak+")</td><td>"+a.weak+" ("+pp(a.weak)+")</td></tr>");
+ }
+ return '<div class="statTitle">'+title+'</div><div class="tableWrap"><table class="archiveTable"><thead><tr><th>开盘分位档</th><th>样本</th><th>达较强端</th><th>同档</th><th>达较弱端</th></tr></thead><tbody>'+rows.join("")+"</tbody></table></div>";
+}
+async function runPremarketStats(){
+ const symbol=String($("#statSymbol").value||S.symbol).trim().toUpperCase(),completeOnly=$("#completeOnly").checked,limit=+$("#statLimit").value||0;
+ statSetStatus("正在从 IndexedDB 读取 "+symbol+" 的逐分钟盘前数据并计算…","warn");
+ try{
+  const samples=await buildPremarketSamples(symbol,completeOnly,limit),up=samples.filter(x=>x.last>=0),down=samples.filter(x=>x.last<0);
+  $("#statOutput").innerHTML=renderStatTable("上涨样本（盘前末价 ≥ 昨收）",up)+renderStatTable("下跌样本（盘前末价 < 昨收）",down);
+  $("#mappingOutput").innerHTML=renderMapping("上涨：开盘分位 → 盘前最高分位",up,"up")+renderMapping("下跌：开盘分位 → 盘前最低分位",down,"down");
+  const incomplete=samples.filter(x=>!x.complete).length;
+  statSetStatus(symbol+" 统计完成：有效 "+samples.length+" 日；上涨 "+up.length+"，下跌 "+down.length+"。"+(completeOnly?"已排除盘前分钟不完整交易日。":"当前包含 "+incomplete+" 个盘前不完整交易日。"),"ok");
+ }catch(e){statSetStatus("统计失败："+e.message,"bad")}
 }
 
 function applyRange(){
@@ -341,18 +669,30 @@ function renderWatch(){
 function loadSymbol(s,n){
  s=String(s||"").trim().toUpperCase();
  if(!/^[A-Z0-9.^-]{1,12}$/.test(s)){setStatus("股票代码格式无效",true);return}
- S.symbol=s;S.name=n||s;S.raw=[];S.bars=[];S.historyDays=0;el.symbolInput.value=s;renderWatch();useCacheInstant();refresh(2);
+ S.symbol=s;S.name=n||s;S.raw=[];S.bars=[];S.historyDays=0;el.symbolInput.value=s;if($("#archiveSymbol"))$("#archiveSymbol").value=s;if($("#statSymbol"))$("#statSymbol").value=s;renderWatch();useCacheInstant();refresh(2);
 }
 all(".ranges button").forEach(b=>b.onclick=()=>{all(".ranges button").forEach(x=>x.classList.remove("active"));b.classList.add("active");all(".sessions button").forEach(x=>x.classList.toggle("active",b.dataset.range==="24h"&&x.dataset.session==="all"));S.range=b.dataset.range;applyRange();if(S.range==="5d"&&S.historyDays<6)refresh(8)});
 all(".sessions button").forEach(b=>b.onclick=()=>{all(".sessions button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const r=b.dataset.session==="all"?"24h":b.dataset.session;S.range=r;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===r));applyRange()});
 $("#refresh").onclick=()=>refresh(2);$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=()=>el.settings.classList.toggle("open");$("#close").onclick=()=>el.settings.classList.remove("open");$("#save").onclick=()=>{saveCfg();el.settings.classList.remove("open");refresh()};
 $("#loadSymbol").onclick=()=>loadSymbol(el.symbolInput.value);el.symbolInput.addEventListener("keydown",e=>{if(e.key==="Enter")loadSymbol(el.symbolInput.value)});
+
+$("#backfillBtn").onclick=()=>backfillHistory();
+$("#archiveRefreshBtn").onclick=()=>archiveRefreshUI().catch(e=>archiveSetStatus("数据管理刷新失败："+e.message,"bad"));
+$("#exportHistoryJson").onclick=()=>exportHistory("json");
+$("#exportHistoryCsv").onclick=()=>exportHistory("csv");
+$("#importHistoryBtn").onclick=()=>$("#importHistoryFile").click();
+$("#importHistoryFile").onchange=e=>{const f=e.target.files?.[0];if(!f)return;importHistoryFile(f).catch(err=>archiveSetStatus("导入失败："+err.message,"bad")).finally(()=>{e.target.value=""})};
+$("#runPremarketStats").onclick=()=>runPremarketStats();
+$("#archiveSymbol").addEventListener("change",()=>{$("#statSymbol").value=$("#archiveSymbol").value.trim().toUpperCase()});
+
 window.addEventListener("resize",resize);
 
 const qs=new URLSearchParams(location.search),qSym=qs.get("symbol"),qRange=qs.get("range");
 if(qSym&&/^[A-Za-z0-9.^-]{1,12}$/.test(qSym)){S.symbol=qSym.toUpperCase();S.name=S.symbol}
 if(["1h","24h","overnight","premarket","regular","afterhours","5d"].includes(qRange)){S.range=qRange;all(".ranges button").forEach(x=>x.classList.toggle("active",x.dataset.range===qRange));all(".sessions button").forEach(x=>x.classList.toggle("active",(qRange==="24h"&&x.dataset.session==="all")||x.dataset.session===qRange))}
-loadCfg();el.symbolInput.value=S.symbol;renderWatch();resize();useCacheInstant();refresh(2);
+loadCfg();el.symbolInput.value=S.symbol;renderWatch();resize();
+$("#archiveSymbol").value=S.symbol;$("#statSymbol").value=S.symbol;archiveInit().catch(e=>archiveSetStatus("IndexedDB 初始化失败："+e.message,"bad"));
+useCacheInstant();refresh(2);
 })();
 </script>
 </body>
