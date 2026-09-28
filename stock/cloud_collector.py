@@ -156,7 +156,7 @@ def alpaca_minutes(symbol: str, days: int):
     token = None
     out = {}
     pages = 0
-    while pages < 100:
+    while pages < 5000:
         params = {
             "timeframe": "1Min",
             "start": start.isoformat().replace("+00:00", "Z"),
@@ -185,7 +185,7 @@ def alpaca_minutes(symbol: str, days: int):
 
 def yahoo_daily(symbol: str):
     params = {
-        "range": "2y",
+        "range": "max",
         "interval": "1d",
         "includePrePost": "false",
         "events": "div,splits",
@@ -330,7 +330,7 @@ def build_manifest(symbols):
         "sharedArchive": True,
         "chatgptReadable": True,
         "minuteSource": "Yahoo by default; optional Alpaca if repository secrets are configured",
-        "yahooLimitation": "1-minute history is limited to recent weeks; archive accumulates prospectively and never labels missing old minutes as complete.",
+        "yahooLimitation": "Yahoo 1-minute history is limited to recent weeks. Alpaca historical equities data is used for older minute bars when credentials permit; provider coverage is recorded rather than silently treated as complete.",
         "symbols": {},
     }
     for symbol in symbols:
@@ -391,8 +391,8 @@ def main():
     symbols = [str(x).strip().upper() for x in cfg.get("symbols", DEFAULT_SYMBOLS) if str(x).strip()]
     explicit = os.getenv("CLOUD_BACKFILL_DAYS", "").strip()
     first_run = not MANIFEST.exists() or not (json.loads(MANIFEST.read_text("utf-8") or "{}").get("symbols") if MANIFEST.exists() else {})
-    days = int(explicit) if explicit.isdigit() else (28 if first_run else 8)
-    days = max(1, min(days, 400))
+    days = int(explicit) if explicit.isdigit() else (3650 if first_run else 8)
+    days = max(1, min(days, 36500))
     print(f"MinuteLedger cloud collector: {len(symbols)} symbols, requested lookback {days} days")
 
     for symbol in symbols:
