@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "symbols": [
+    "QQQ",
+    "SOXX",
+    "SNDK",
+    "MU",
+    "TSM",
+    "NVDA",
+    "AMD",
+    "AVGO",
+    "INTC",
+    "MRVL",
+    "DELL",
+    "TSLA"
+  ],
+  "note": "Shared symbols collected into stock/cloud_data so the web app and ChatGPT can read the same archive. Add symbols here to include them in future cloud collection."
+}
