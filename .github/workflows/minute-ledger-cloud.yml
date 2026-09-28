@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       backfill_days:
-        description: "Lookback days. Yahoo 1m is limited to recent weeks; with Alpaca secrets this may be set up to 400."
+        description: "Lookback calendar days. Long Alpaca backfills are supported; Yahoo 1m remains recent-only."
         required: false
-        default: "28"
+        default: "3650"
   schedule:
     - cron: "20 10 * * 1-5"
     - cron: "20 22 * * 1-5"
@@ -27,7 +27,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
