@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "updatedAt": null,
+  "sharedArchive": true,
+  "chatgptReadable": true,
+  "minuteSource": "pending first collector run",
+  "yahooLimitation": "1-minute history is limited to recent weeks; archive accumulates prospectively.",
+  "symbols": {}
+}
