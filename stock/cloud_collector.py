@@ -27,6 +27,7 @@ DATA = ROOT / "cloud_data"
 MINUTES = DATA / "minutes"
 DAILY = DATA / "daily"
 SUMMARIES = DATA / "summaries"
+ANALYSIS = DATA / "analysis"
 CONFIG = ROOT / "cloud_config.json"
 MANIFEST = DATA / "manifest.json"
 ET = ZoneInfo("America/New_York")
@@ -303,10 +304,40 @@ def build_summary(symbol: str, daily_rows):
             "firstTs": int(a[0]["t"]),
             "lastTs": int(a[-1]["t"]),
         })
+    # Preserve/import longer validated historical premarket datasets already stored
+    # under cloud_data/analysis. The newer minute archive must not hide older SIP history.
+    legacy = ANALYSIS / f"{symbol}_premarket_400d_sip.json"
+    if legacy.exists():
+        try:
+            payload0 = json.loads(legacy.read_text("utf-8"))
+            merged_samples = {}
+            for x in payload0.get("samples") or []:
+                d = x.get("date") or x.get("tradingDate")
+                if not d:
+                    continue
+                merged_samples[d] = {
+                    "tradingDate": d,
+                    "previousClose": x.get("previousClose"),
+                    "premarketMinutes": x.get("bars"),
+                    "premarketComplete": x.get("bars") == 330,
+                    "openPct": x.get("openPct"),
+                    "highPct": x.get("highPct"),
+                    "lowPct": x.get("lowPct"),
+                    "lastPct": x.get("lastPct"),
+                    "firstTs": x.get("firstTs"),
+                    "lastTs": x.get("lastTs"),
+                    "historicalSource": payload0.get("source", "stored analysis"),
+                }
+            for x in samples:
+                merged_samples[x["tradingDate"]] = x
+            samples = [merged_samples[d] for d in sorted(merged_samples)]
+        except Exception as exc:
+            print(f"{symbol} historical analysis import failed: {exc}", file=sys.stderr)
+
     SUMMARIES.mkdir(parents=True, exist_ok=True)
     path = SUMMARIES / f"{symbol}_premarket.json"
     payload = {
-        "version": 1,
+        "version": 2,
         "symbol": symbol,
         "timezone": "America/New_York",
         "definition": "premarket 04:00-09:29 ET; all percentages vs previous regular-session close",
@@ -329,7 +360,8 @@ def build_manifest(symbols):
         "updatedAt": datetime.now(timezone.utc).isoformat(),
         "sharedArchive": True,
         "chatgptReadable": True,
-        "minuteSource": "Yahoo by default; optional Alpaca if repository secrets are configured",
+        "minuteSource": "Yahoo recent archive; Alpaca when repository credentials are configured; stored validated SIP analysis is merged into statistics summaries",
+        "alpacaCredentialsConfigured": bool(os.getenv("ALPACA_KEY", "").strip() and os.getenv("ALPACA_SECRET", "").strip()),
         "yahooLimitation": "Yahoo 1-minute history is limited to recent weeks. Alpaca historical equities data is used for older minute bars when credentials permit; provider coverage is recorded rather than silently treated as complete.",
         "symbols": {},
     }
