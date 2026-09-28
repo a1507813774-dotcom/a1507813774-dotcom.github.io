@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-28T08:54:04.900155+00:00",
+  "updatedAt": "2026-09-28T09:54:43.463764+00:00",
   "sharedArchive": true,
   "chatgptReadable": true,
   "minuteSource": "Yahoo by default; optional Alpaca if repository secrets are configured",
-  "yahooLimitation": "1-minute history is limited to recent weeks; archive accumulates prospectively and never labels missing old minutes as complete.",
+  "yahooLimitation": "Yahoo 1-minute history is limited to recent weeks. Alpaca historical equities data is used for older minute bars when credentials permit; provider coverage is recorded rather than silently treated as complete.",
   "symbols": {
     "QQQ": {
-      "bars": 18201,
+      "bars": 18264,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585615000,
-      "premarketDays": 19,
-      "completePremarketDays": 6,
+      "lastTs": 1790589253000,
+      "premarketDays": 2,
+      "completePremarketDays": 2,
       "dailyPath": "cloud_data/daily/QQQ.json",
       "premarketSummaryPath": "cloud_data/summaries/QQQ_premarket.json",
       "months": [
@@ -29,21 +29,21 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/QQQ/2026-09.jsonl",
-          "bars": 17297,
+          "bars": 17360,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585615000
+          "lastTs": 1790589253000
         }
       ]
     },
     "SOXX": {
-      "bars": 16533,
+      "bars": 16591,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166860000,
-      "lastTs": 1790585597000,
-      "premarketDays": 19,
+      "lastTs": 1790589249000,
+      "premarketDays": 2,
       "completePremarketDays": 0,
       "dailyPath": "cloud_data/daily/SOXX.json",
       "premarketSummaryPath": "cloud_data/summaries/SOXX_premarket.json",
@@ -59,22 +59,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/SOXX/2026-09.jsonl",
-          "bars": 15802,
+          "bars": 15860,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585597000
+          "lastTs": 1790589249000
         }
       ]
     },
     "SNDK": {
-      "bars": 18220,
+      "bars": 18283,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585621000,
+      "lastTs": 1790589263000,
       "premarketDays": 19,
-      "completePremarketDays": 11,
+      "completePremarketDays": 12,
       "dailyPath": "cloud_data/daily/SNDK.json",
       "premarketSummaryPath": "cloud_data/summaries/SNDK_premarket.json",
       "months": [
@@ -89,22 +89,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/SNDK/2026-09.jsonl",
-          "bars": 17316,
+          "bars": 17379,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585621000
+          "lastTs": 1790589263000
         }
       ]
     },
     "MU": {
-      "bars": 18233,
+      "bars": 18296,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585620000,
-      "premarketDays": 19,
-      "completePremarketDays": 15,
+      "lastTs": 1790589259000,
+      "premarketDays": 2,
+      "completePremarketDays": 2,
       "dailyPath": "cloud_data/daily/MU.json",
       "premarketSummaryPath": "cloud_data/summaries/MU_premarket.json",
       "months": [
@@ -119,21 +119,21 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/MU/2026-09.jsonl",
-          "bars": 17330,
+          "bars": 17393,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585620000
+          "lastTs": 1790589259000
         }
       ]
     },
     "TSM": {
-      "bars": 14820,
+      "bars": 14850,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585608000,
-      "premarketDays": 19,
+      "lastTs": 1790589141000,
+      "premarketDays": 2,
       "completePremarketDays": 0,
       "dailyPath": "cloud_data/daily/TSM.json",
       "premarketSummaryPath": "cloud_data/summaries/TSM_premarket.json",
@@ -149,22 +149,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/TSM/2026-09.jsonl",
-          "bars": 13959,
+          "bars": 13989,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585608000
+          "lastTs": 1790589141000
         }
       ]
     },
     "NVDA": {
-      "bars": 18235,
+      "bars": 18298,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585628000,
-      "premarketDays": 19,
-      "completePremarketDays": 16,
+      "lastTs": 1790589270000,
+      "premarketDays": 2,
+      "completePremarketDays": 2,
       "dailyPath": "cloud_data/daily/NVDA.json",
       "premarketSummaryPath": "cloud_data/summaries/NVDA_premarket.json",
       "months": [
@@ -179,22 +179,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/NVDA/2026-09.jsonl",
-          "bars": 17331,
+          "bars": 17394,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585628000
+          "lastTs": 1790589270000
         }
       ]
     },
     "AMD": {
-      "bars": 18147,
+      "bars": 18210,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585623000,
-      "premarketDays": 19,
-      "completePremarketDays": 4,
+      "lastTs": 1790589269000,
+      "premarketDays": 2,
+      "completePremarketDays": 1,
       "dailyPath": "cloud_data/daily/AMD.json",
       "premarketSummaryPath": "cloud_data/summaries/AMD_premarket.json",
       "months": [
@@ -209,22 +209,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/AMD/2026-09.jsonl",
-          "bars": 17260,
+          "bars": 17323,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585623000
+          "lastTs": 1790589269000
         }
       ]
     },
     "AVGO": {
-      "bars": 18181,
+      "bars": 18242,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585621000,
-      "premarketDays": 19,
-      "completePremarketDays": 8,
+      "lastTs": 1790589259000,
+      "premarketDays": 2,
+      "completePremarketDays": 1,
       "dailyPath": "cloud_data/daily/AVGO.json",
       "premarketSummaryPath": "cloud_data/summaries/AVGO_premarket.json",
       "months": [
@@ -239,22 +239,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/AVGO/2026-09.jsonl",
-          "bars": 17280,
+          "bars": 17341,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585621000
+          "lastTs": 1790589259000
         }
       ]
     },
     "INTC": {
-      "bars": 18234,
+      "bars": 18296,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585635000,
-      "premarketDays": 19,
-      "completePremarketDays": 16,
+      "lastTs": 1790589276000,
+      "premarketDays": 2,
+      "completePremarketDays": 2,
       "dailyPath": "cloud_data/daily/INTC.json",
       "premarketSummaryPath": "cloud_data/summaries/INTC_premarket.json",
       "months": [
@@ -269,22 +269,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/INTC/2026-09.jsonl",
-          "bars": 17330,
+          "bars": 17392,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585635000
+          "lastTs": 1790589276000
         }
       ]
     },
     "MRVL": {
-      "bars": 18120,
+      "bars": 18181,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166560000,
-      "lastTs": 1790585636000,
-      "premarketDays": 19,
-      "completePremarketDays": 7,
+      "lastTs": 1790589274000,
+      "premarketDays": 2,
+      "completePremarketDays": 1,
       "dailyPath": "cloud_data/daily/MRVL.json",
       "premarketSummaryPath": "cloud_data/summaries/MRVL_premarket.json",
       "months": [
@@ -299,21 +299,21 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/MRVL/2026-09.jsonl",
-          "bars": 17218,
+          "bars": 17279,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585636000
+          "lastTs": 1790589274000
         }
       ]
     },
     "DELL": {
-      "bars": 13981,
+      "bars": 13991,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166620000,
-      "lastTs": 1790585535000,
-      "premarketDays": 19,
+      "lastTs": 1790588891000,
+      "premarketDays": 2,
       "completePremarketDays": 0,
       "dailyPath": "cloud_data/daily/DELL.json",
       "premarketSummaryPath": "cloud_data/summaries/DELL_premarket.json",
@@ -329,22 +329,22 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/DELL/2026-09.jsonl",
-          "bars": 13136,
+          "bars": 13146,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585535000
+          "lastTs": 1790588891000
         }
       ]
     },
     "TSLA": {
-      "bars": 18214,
+      "bars": 18277,
       "tradingDays": 20,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-09-28",
       "firstTs": 1788166620000,
-      "lastTs": 1790585638000,
-      "premarketDays": 19,
-      "completePremarketDays": 12,
+      "lastTs": 1790589279000,
+      "premarketDays": 2,
+      "completePremarketDays": 2,
       "dailyPath": "cloud_data/daily/TSLA.json",
       "premarketSummaryPath": "cloud_data/summaries/TSLA_premarket.json",
       "months": [
@@ -359,10 +359,10 @@
         {
           "month": "2026-09",
           "path": "cloud_data/minutes/TSLA/2026-09.jsonl",
-          "bars": 17311,
+          "bars": 17374,
           "tradingDays": 19,
           "firstTs": 1788249600000,
-          "lastTs": 1790585638000
+          "lastTs": 1790589279000
         }
       ]
     }
