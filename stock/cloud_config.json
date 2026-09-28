@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "symbols": [
     "QQQ",
     "SOXX",
@@ -14,5 +14,5 @@
     "DELL",
     "TSLA"
   ],
-  "note": "Shared symbols collected into stock/cloud_data so the web app and ChatGPT can read the same archive. Add symbols here to include them in future cloud collection."
+  "note": "Shared symbols collected into stock/cloud_data so stock/index.html and ChatGPT read the same remote archive. This update also triggers the first collector run."
 }
