@@ -41,7 +41,7 @@ jobs:
         env:
           ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
           ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
-          ALPACA_FEED: ${{ vars.ALPACA_FEED || 'iex' }}
+          ALPACA_FEED: ${{ vars.ALPACA_FEED || 'sip' }}
           DISPATCH_DAYS: ${{ inputs.backfill_days }}
         run: |
           set -e
