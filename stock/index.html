@@ -366,7 +366,13 @@ async function cloudRefreshStatus(symbol){
    return null;
   }
   const upd=m.updatedAt?new Date(m.updatedAt).toLocaleString("zh-CN"):"尚未首次采集";
-  cloudSetStatus("共享云端 "+symbol+"：分钟K "+Number(x.bars||0).toLocaleString()+" 根 · "+(x.tradingDays||0)+" 个交易日 · 盘前 "+(x.premarketDays||0)+" 日（完整 "+(x.completePremarketDays||0)+"） · 更新 "+upd+"。ChatGPT 可直接读取这些归档。",x.bars?"ok":"warn");
+  let longText="";
+  if(x.longHistoryRequired){
+    longText=x.longHistoryReady
+      ?" · 长期"+(x.longHistoryTargetTradingDays||400)+"日：已就绪"
+      :" · 长期"+(x.longHistoryTargetTradingDays||400)+"日：未就绪（缺 "+(x.longHistoryMissingDays??"—")+" 日）";
+  }
+  cloudSetStatus("共享云端 "+symbol+"：分钟K "+Number(x.bars||0).toLocaleString()+" 根 · "+(x.tradingDays||0)+" 个交易日 · 盘前 "+(x.premarketDays||0)+" 日（完整 "+(x.completePremarketDays||0)+"）"+longText+" · 更新 "+upd+"。ChatGPT 可直接读取这些归档。",x.longHistoryRequired&&!x.longHistoryReady?"warn":(x.bars?"ok":"warn"));
   return x;
  }catch(e){
   cloudSetStatus("共享云端读取失败："+e.message,"bad");return null;
