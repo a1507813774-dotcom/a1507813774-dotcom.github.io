@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "symbols": [
     "QQQ",
     "SOXX",
@@ -20,9 +20,14 @@
     "SNDK",
     "MU",
     "TSM",
-    "NVDA"
+    "NVDA",
+    "AMD",
+    "AVGO",
+    "INTC",
+    "MRVL",
+    "DELL"
   ],
   "longHistoryTradingDays": 400,
   "longHistoryCalendarDays": 700,
-  "note": "symbols are collected continuously. longHistorySymbols are the common statistics set and are automatically retried for 400-trading-day coverage whenever the configured provider can supply long 1-minute history."
+  "note": "symbols are collected continuously. longHistorySymbols are the common statistics set and are automatically retried for 400-trading-day coverage whenever the configured provider can supply long intraday history."
 }
