@@ -212,7 +212,21 @@ def yahoo_daily(symbol: str):
         if c is None:
             continue
         d = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(ET).date().isoformat()
-        rows.append({"tradingDate": d, "regularClose": float(c)})
+        opens = q.get("open") or []
+        highs = q.get("high") or []
+        lows = q.get("low") or []
+        volumes = q.get("volume") or []
+        def qv(arr):
+            v = arr[i] if i < len(arr) else None
+            return float(v) if v is not None else None
+        rows.append({
+            "tradingDate": d,
+            "open": qv(opens),
+            "high": qv(highs),
+            "low": qv(lows),
+            "regularClose": float(c),
+            "volume": qv(volumes),
+        })
     rows.sort(key=lambda x: x["tradingDate"])
     for i, row in enumerate(rows):
         row["previousClose"] = rows[i-1]["regularClose"] if i else None
@@ -410,6 +424,13 @@ def build_manifest(symbols, long_history_symbols, long_history_target):
             except Exception:
                 summary = {}
         samples = summary.get("samples") or []
+        daily_file = DAILY / f"{symbol}.json"
+        daily_rows = []
+        if daily_file.exists():
+            try:
+                daily_rows = (json.loads(daily_file.read_text("utf-8")) or {}).get("rows") or []
+            except Exception:
+                daily_rows = []
         long_required = symbol in long_history_symbols
         long_ready = (len(samples) >= long_history_target) if long_required else None
         hist_sources = sorted({str(x.get("historicalSource")) for x in samples if x.get("historicalSource")})
@@ -422,6 +443,9 @@ def build_manifest(symbols, long_history_symbols, long_history_target):
             "lastTs": last_ts,
             "premarketDays": len(samples),
             "completePremarketDays": sum(1 for x in samples if x.get("premarketComplete")),
+            "dailyHistoryDays": len(daily_rows),
+            "dailyEarliestTradingDate": daily_rows[0].get("tradingDate") if daily_rows else None,
+            "dailyLatestTradingDate": daily_rows[-1].get("tradingDate") if daily_rows else None,
             "longHistoryRequired": long_required,
             "longHistoryTargetTradingDays": long_history_target if long_required else None,
             "longHistoryReady": long_ready,
