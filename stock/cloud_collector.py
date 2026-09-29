@@ -340,8 +340,10 @@ def build_summary(symbol: str, daily_rows):
                 merged_samples[d] = {
                     "tradingDate": d,
                     "previousClose": x.get("previousClose"),
-                    "premarketMinutes": x.get("bars"),
-                    "premarketComplete": x.get("bars") == 330,
+                    "premarketMinutes": x.get("premarketMinutes", x.get("bars")),
+                    "premarketComplete": x.get("premarketComplete", x.get("bars") == 330),
+                    "premarketSummaryExact": x.get("premarketSummaryExact", False),
+                    "aggregation": x.get("aggregation"),
                     "openPct": x.get("openPct"),
                     "highPct": x.get("highPct"),
                     "lowPct": x.get("lowPct"),
