@@ -195,8 +195,13 @@ def alpaca_minutes(symbol: str, days: int):
 
 
 def yahoo_daily(symbol: str):
+    # Yahoo may silently coarsen very long "max" requests. Use an explicit
+    # recent window so interval=1d really means one bar per trading day.
+    end = datetime.now(timezone.utc) + timedelta(days=1)
+    start = end - timedelta(days=1460)
     params = {
-        "range": "max",
+        "period1": int(start.timestamp()),
+        "period2": int(end.timestamp()),
         "interval": "1d",
         "includePrePost": "false",
         "events": "div,splits",
