@@ -33,7 +33,10 @@ MANIFEST = DATA / "manifest.json"
 ET = ZoneInfo("America/New_York")
 
 DEFAULT_SYMBOLS = ["QQQ","SOXX","SNDK","MU","TSM","NVDA","AMD","AVGO","INTC","MRVL","DELL","TSLA"]
-UA = "Mozilla/5.0 MinuteLedgerCloud/3.1"
+DEFAULT_LONG_HISTORY_SYMBOLS = ["QQQ","SOXX","SNDK","MU","TSM","NVDA"]
+DEFAULT_LONG_HISTORY_TRADING_DAYS = 400
+DEFAULT_LONG_HISTORY_CALENDAR_DAYS = 700
+UA = "Mozilla/5.0 MinuteLedgerCloud/3.2"
 
 
 def load_config():
@@ -42,7 +45,12 @@ def load_config():
             return json.loads(CONFIG.read_text("utf-8"))
         except Exception as exc:
             print(f"config warning: {exc}", file=sys.stderr)
-    return {"symbols": DEFAULT_SYMBOLS}
+    return {
+        "symbols": DEFAULT_SYMBOLS,
+        "longHistorySymbols": DEFAULT_LONG_HISTORY_SYMBOLS,
+        "longHistoryTradingDays": DEFAULT_LONG_HISTORY_TRADING_DAYS,
+        "longHistoryCalendarDays": DEFAULT_LONG_HISTORY_CALENDAR_DAYS,
+    }
 
 
 def http_json(url: str, headers: dict | None = None, timeout: int = 25):
@@ -348,7 +356,7 @@ def build_summary(symbol: str, daily_rows):
     return samples
 
 
-def build_manifest(symbols):
+def build_manifest(symbols, long_history_symbols, long_history_target):
     old = {}
     if MANIFEST.exists():
         try:
@@ -363,6 +371,8 @@ def build_manifest(symbols):
         "minuteSource": "Yahoo recent archive; Alpaca when repository credentials are configured; stored validated SIP analysis is merged into statistics summaries",
         "alpacaCredentialsConfigured": bool(os.getenv("ALPACA_KEY", "").strip() and os.getenv("ALPACA_SECRET", "").strip()),
         "yahooLimitation": "Yahoo 1-minute history is limited to recent weeks. Alpaca historical equities data is used for older minute bars when credentials permit; provider coverage is recorded rather than silently treated as complete.",
+        "longHistoryTargetTradingDays": long_history_target,
+        "longHistorySymbols": sorted(long_history_symbols),
         "symbols": {},
     }
     for symbol in symbols:
@@ -400,6 +410,9 @@ def build_manifest(symbols):
             except Exception:
                 summary = {}
         samples = summary.get("samples") or []
+        long_required = symbol in long_history_symbols
+        long_ready = (len(samples) >= long_history_target) if long_required else None
+        hist_sources = sorted({str(x.get("historicalSource")) for x in samples if x.get("historicalSource")})
         result["symbols"][symbol] = {
             "bars": total,
             "tradingDays": len(all_days),
@@ -409,6 +422,11 @@ def build_manifest(symbols):
             "lastTs": last_ts,
             "premarketDays": len(samples),
             "completePremarketDays": sum(1 for x in samples if x.get("premarketComplete")),
+            "longHistoryRequired": long_required,
+            "longHistoryTargetTradingDays": long_history_target if long_required else None,
+            "longHistoryReady": long_ready,
+            "longHistoryMissingDays": max(0, long_history_target - len(samples)) if long_required else 0,
+            "historicalSources": hist_sources,
             "dailyPath": f"cloud_data/daily/{symbol}.json",
             "premarketSummaryPath": f"cloud_data/summaries/{symbol}_premarket.json",
             "months": months,
@@ -421,16 +439,56 @@ def build_manifest(symbols):
 def main():
     cfg = load_config()
     symbols = [str(x).strip().upper() for x in cfg.get("symbols", DEFAULT_SYMBOLS) if str(x).strip()]
+    long_history_symbols = {
+        str(x).strip().upper()
+        for x in cfg.get("longHistorySymbols", DEFAULT_LONG_HISTORY_SYMBOLS)
+        if str(x).strip()
+    }
+    # A symbol added to longHistorySymbols is automatically collected even if
+    # it was accidentally omitted from the ordinary symbols list.
+    symbols = list(dict.fromkeys(symbols + sorted(long_history_symbols)))
+    long_history_target = max(1, int(cfg.get("longHistoryTradingDays", DEFAULT_LONG_HISTORY_TRADING_DAYS)))
+    long_history_calendar_days = max(
+        long_history_target,
+        int(cfg.get("longHistoryCalendarDays", DEFAULT_LONG_HISTORY_CALENDAR_DAYS)),
+    )
+
     explicit = os.getenv("CLOUD_BACKFILL_DAYS", "").strip()
-    first_run = not MANIFEST.exists() or not (json.loads(MANIFEST.read_text("utf-8") or "{}").get("symbols") if MANIFEST.exists() else {})
-    days = int(explicit) if explicit.isdigit() else (3650 if first_run else 8)
-    days = max(1, min(days, 36500))
-    print(f"MinuteLedger cloud collector: {len(symbols)} symbols, requested lookback {days} days")
+    alpaca_configured = bool(os.getenv("ALPACA_KEY", "").strip() and os.getenv("ALPACA_SECRET", "").strip())
+
+    old_manifest = {}
+    if MANIFEST.exists():
+        try:
+            old_manifest = json.loads(MANIFEST.read_text("utf-8") or "{}")
+        except Exception:
+            old_manifest = {}
+    old_symbols = old_manifest.get("symbols") or {}
+
+    print(
+        f"MinuteLedger cloud collector: {len(symbols)} symbols; "
+        f"long-history target={long_history_target} trading days for {sorted(long_history_symbols)}; "
+        f"alpaca={'yes' if alpaca_configured else 'no'}"
+    )
 
     for symbol in symbols:
+        old_meta = old_symbols.get(symbol) or {}
+        existing_pm_days = int(old_meta.get("premarketDays") or 0)
+        is_new_symbol = symbol not in old_symbols
+
+        if explicit.isdigit():
+            days = int(explicit)
+        elif symbol in long_history_symbols and existing_pm_days < long_history_target and alpaca_configured:
+            # Retry the long backfill on every run until this symbol reaches the target.
+            days = long_history_calendar_days
+        elif is_new_symbol:
+            # Newly added symbols bootstrap a wider recent window automatically.
+            days = 28
+        else:
+            days = 8
+        days = max(1, min(days, 36500))
+
         bars = []
         try:
-            # Alpaca, when configured, is attempted first because it can offer a longer minute history.
             bars = alpaca_minutes(symbol, days)
         except Exception as exc:
             print(f"{symbol} Alpaca failed: {exc}", file=sys.stderr)
@@ -445,13 +503,34 @@ def main():
             daily_rows = yahoo_daily(symbol)
             write_daily(symbol, daily_rows)
             samples = build_summary(symbol, daily_rows)
-            print(f"{symbol}: cloud premarket samples={len(samples)}")
+            if symbol in long_history_symbols and len(samples) < long_history_target:
+                reason = (
+                    "Alpaca credentials are not configured in GitHub Actions"
+                    if not alpaca_configured
+                    else "provider/backfill coverage is still incomplete"
+                )
+                print(
+                    f"{symbol}: LONG_HISTORY_NOT_READY "
+                    f"{len(samples)}/{long_history_target}; {reason}",
+                    file=sys.stderr,
+                )
+            else:
+                print(f"{symbol}: cloud premarket samples={len(samples)}")
         except Exception as exc:
             print(f"{symbol} daily/summary failed: {exc}", file=sys.stderr)
         time.sleep(0.4)
 
-    manifest = build_manifest(symbols)
-    print(json.dumps({s: {"bars": manifest["symbols"][s]["bars"], "days": manifest["symbols"][s]["tradingDays"]} for s in symbols}, ensure_ascii=False))
+    manifest = build_manifest(symbols, long_history_symbols, long_history_target)
+    print(json.dumps({
+        s: {
+            "bars": manifest["symbols"][s]["bars"],
+            "days": manifest["symbols"][s]["tradingDays"],
+            "premarketDays": manifest["symbols"][s]["premarketDays"],
+            "longHistoryReady": manifest["symbols"][s]["longHistoryReady"],
+            "longHistoryMissingDays": manifest["symbols"][s]["longHistoryMissingDays"],
+        }
+        for s in symbols
+    }, ensure_ascii=False))
 
 
 if __name__ == "__main__":
