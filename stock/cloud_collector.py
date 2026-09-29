@@ -159,8 +159,10 @@ def alpaca_minutes(symbol: str, days: int):
     secret = os.getenv("ALPACA_SECRET", "").strip()
     if not key or not secret:
         return []
-    feed = os.getenv("ALPACA_FEED", "iex").strip() or "iex"
-    end = datetime.now(timezone.utc)
+    feed = os.getenv("ALPACA_FEED", "sip").strip() or "sip"
+    # Basic Alpaca SIP access is delayed; stay outside the current SIP delay window.
+    now = datetime.now(timezone.utc)
+    end = now - timedelta(minutes=20) if feed in {"sip", "delayed_sip"} else now
     start = end - timedelta(days=days)
     token = None
     out = {}
@@ -518,11 +520,20 @@ def main():
             bars = alpaca_minutes(symbol, days)
         except Exception as exc:
             print(f"{symbol} Alpaca failed: {exc}", file=sys.stderr)
-        if not bars:
-            try:
-                bars = yahoo_minutes(symbol, min(days, 28))
-            except Exception as exc:
-                print(f"{symbol} Yahoo minutes failed: {exc}", file=sys.stderr)
+
+        # Always merge a recent Yahoo window too. This fills the SIP delay window
+        # and keeps the newest cloud archive fresh while Alpaca supplies deep history.
+        recent = []
+        try:
+            recent = yahoo_minutes(symbol, min(days, 28))
+        except Exception as exc:
+            print(f"{symbol} Yahoo minutes failed: {exc}", file=sys.stderr)
+
+        merged = {int(x["t"]): x for x in bars if x.get("t") is not None}
+        for x in recent:
+            if x.get("t") is not None:
+                merged[int(x["t"])] = x
+        bars = sorted(merged.values(), key=lambda x: int(x["t"]))
         if bars:
             merge_minutes(symbol, bars)
         try:
