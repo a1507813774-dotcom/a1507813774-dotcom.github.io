@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "symbols": [
     "QQQ",
     "SOXX",
@@ -14,5 +14,15 @@
     "DELL",
     "TSLA"
   ],
-  "note": "Shared symbols collected into stock/cloud_data so stock/index.html and ChatGPT read the same remote archive. This update also triggers the first collector run."
+  "longHistorySymbols": [
+    "QQQ",
+    "SOXX",
+    "SNDK",
+    "MU",
+    "TSM",
+    "NVDA"
+  ],
+  "longHistoryTradingDays": 400,
+  "longHistoryCalendarDays": 700,
+  "note": "symbols are collected continuously. longHistorySymbols are the common statistics set and are automatically retried for 400-trading-day coverage whenever the configured provider can supply long 1-minute history."
 }
