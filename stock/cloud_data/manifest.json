@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T19:49:02.901222+00:00",
+  "updatedAt": "2026-10-13T03:04:58.671921+00:00",
   "sharedArchive": true,
   "chatgptReadable": true,
   "minuteSource": "Yahoo recent archive; Alpaca when repository credentials are configured; stored validated SIP analysis is merged into statistics summaries",
@@ -22,16 +22,16 @@
   ],
   "symbols": {
     "QQQ": {
-      "bars": 28164,
+      "bars": 28353,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834519000,
+      "lastTs": 1791849593000,
       "premarketDays": 411,
       "completePremarketDays": 50,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -62,24 +62,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/QQQ/2026-10.jsonl",
-          "bars": 7125,
+          "bars": 7314,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834519000
+          "lastTs": 1791849593000
         }
       ]
     },
     "SOXX": {
-      "bars": 25136,
+      "bars": 25230,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166860000,
-      "lastTs": 1791834516000,
+      "lastTs": 1791849572000,
       "premarketDays": 30,
       "completePremarketDays": 0,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -108,20 +108,20 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/SOXX/2026-10.jsonl",
-          "bars": 6071,
+          "bars": 6165,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834516000
+          "lastTs": 1791849572000
         }
       ]
     },
     "SNDK": {
-      "bars": 27810,
+      "bars": 27987,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834523000,
+      "lastTs": 1791849580000,
       "premarketDays": 30,
       "completePremarketDays": 16,
       "dailyHistoryDays": 417,
@@ -154,24 +154,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/SNDK/2026-10.jsonl",
-          "bars": 6759,
+          "bars": 6936,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834523000
+          "lastTs": 1791849580000
         }
       ]
     },
     "MU": {
-      "bars": 28413,
+      "bars": 28662,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834525000,
+      "lastTs": 1791849598000,
       "premarketDays": 30,
       "completePremarketDays": 23,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -200,24 +200,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/MU/2026-10.jsonl",
-          "bars": 7338,
+          "bars": 7587,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834525000
+          "lastTs": 1791849598000
         }
       ]
     },
     "TSM": {
-      "bars": 21994,
+      "bars": 22016,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834527000,
+      "lastTs": 1791849554000,
       "premarketDays": 30,
       "completePremarketDays": 0,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -246,24 +246,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/TSM/2026-10.jsonl",
-          "bars": 5252,
+          "bars": 5274,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834527000
+          "lastTs": 1791849554000
         }
       ]
     },
     "NVDA": {
-      "bars": 28370,
+      "bars": 28598,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834530000,
+      "lastTs": 1791849591000,
       "premarketDays": 30,
       "completePremarketDays": 24,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -292,24 +292,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/NVDA/2026-10.jsonl",
-          "bars": 7292,
+          "bars": 7520,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834530000
+          "lastTs": 1791849591000
         }
       ]
     },
     "AMD": {
-      "bars": 27566,
+      "bars": 27691,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834531000,
+      "lastTs": 1791849584000,
       "premarketDays": 30,
       "completePremarketDays": 7,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -338,24 +338,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/AMD/2026-10.jsonl",
-          "bars": 6588,
+          "bars": 6713,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834531000
+          "lastTs": 1791849584000
         }
       ]
     },
     "AVGO": {
-      "bars": 27953,
+      "bars": 28122,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834533000,
+      "lastTs": 1791849571000,
       "premarketDays": 30,
       "completePremarketDays": 11,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -384,24 +384,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/AVGO/2026-10.jsonl",
-          "bars": 6944,
+          "bars": 7113,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834533000
+          "lastTs": 1791849571000
         }
       ]
     },
     "INTC": {
-      "bars": 28428,
+      "bars": 28659,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834535000,
+      "lastTs": 1791849592000,
       "premarketDays": 30,
       "completePremarketDays": 24,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -430,24 +430,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/INTC/2026-10.jsonl",
-          "bars": 7352,
+          "bars": 7583,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834535000
+          "lastTs": 1791849592000
         }
       ]
     },
     "MRVL": {
-      "bars": 27616,
+      "bars": 27760,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166560000,
-      "lastTs": 1791834536000,
+      "lastTs": 1791849575000,
       "premarketDays": 30,
       "completePremarketDays": 7,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -476,24 +476,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/MRVL/2026-10.jsonl",
-          "bars": 6686,
+          "bars": 6830,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834536000
+          "lastTs": 1791849575000
         }
       ]
     },
     "DELL": {
-      "bars": 19668,
+      "bars": 19688,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166620000,
-      "lastTs": 1791834528000,
+      "lastTs": 1791849464000,
       "premarketDays": 30,
       "completePremarketDays": 0,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": true,
       "longHistoryTargetTradingDays": 400,
@@ -522,24 +522,24 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/DELL/2026-10.jsonl",
-          "bars": 4013,
+          "bars": 4033,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834528000
+          "lastTs": 1791849464000
         }
       ]
     },
     "TSLA": {
-      "bars": 28141,
+      "bars": 28346,
       "tradingDays": 30,
       "earliestTradingDate": "2026-08-31",
       "latestTradingDate": "2026-10-12",
       "firstTs": 1788166620000,
-      "lastTs": 1791834480000,
+      "lastTs": 1791849597000,
       "premarketDays": 30,
       "completePremarketDays": 19,
-      "dailyHistoryDays": 1001,
-      "dailyEarliestTradingDate": "2022-10-14",
+      "dailyHistoryDays": 1000,
+      "dailyEarliestTradingDate": "2022-10-17",
       "dailyLatestTradingDate": "2026-10-12",
       "longHistoryRequired": false,
       "longHistoryTargetTradingDays": null,
@@ -568,10 +568,10 @@
         {
           "month": "2026-10",
           "path": "cloud_data/minutes/TSLA/2026-10.jsonl",
-          "bars": 7085,
+          "bars": 7290,
           "tradingDays": 8,
           "firstTs": 1790841600000,
-          "lastTs": 1791834480000
+          "lastTs": 1791849597000
         }
       ]
     }
