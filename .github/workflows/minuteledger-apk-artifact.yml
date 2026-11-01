@@ -1,0 +1,20 @@
+name: MinuteLedger APK attachment
+on:
+  push:
+    branches: [minuteledger-apk-v1.8.2]
+    paths: ['.github/workflows/minuteledger-apk-artifact.yml']
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify APK SHA-256
+        run: echo 'dd57e53e5c85b1a6446da69c5daa1ac194dcf70215f4ee00b3b9617316c745fa  releases/MinuteLedger-v1.8.2.apk' | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MinuteLedger-v1.8.2-APK
+          path: releases/MinuteLedger-v1.8.2.apk
+          if-no-files-found: error
