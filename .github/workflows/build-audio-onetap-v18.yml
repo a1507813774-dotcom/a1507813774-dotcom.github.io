@@ -1,7 +1,7 @@
 name: Build AudioOneTap v1.8 speed and integrity APK
 on:
   push:
-    branches: [build-audio-onetap-v18-speed-integrity]
+    branches: [build-audio-onetap-v18-codec-stability]
   workflow_dispatch:
 
 jobs:
