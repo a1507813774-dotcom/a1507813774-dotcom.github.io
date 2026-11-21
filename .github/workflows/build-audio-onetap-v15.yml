@@ -1,0 +1,67 @@
+name: Build AudioOneTap v1.5 unsigned APK and signing tools
+on:
+  push:
+    branches: [build-audio-onetap-v15-recovery]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Extract repaired v1.5 source
+        run: |
+          unzip -q source/AudioOneTap-v1.5-source.zip
+          test -f AudioOneTap_v1_5_Source/app/src/main/java/com/onec/audio/AudioTranscoder.java
+          grep -q 'IDLE_LIMIT_MS = 20_000' AudioOneTap_v1_5_Source/app/src/main/java/com/onec/audio/AudioTranscoder.java
+          grep -q 'ACTION_SKIP_COMPRESSION' AudioOneTap_v1_5_Source/app/src/main/java/com/onec/audio/AudioService.java
+          grep -q 'saveDownloadedToDrive' AudioOneTap_v1_5_Source/app/src/main/java/com/onec/audio/MainActivity.java
+          grep -q 'versionCode 6' AudioOneTap_v1_5_Source/app/build.gradle
+          mv AudioOneTap_v1_5_Source app-project
+      - name: Install SDK
+        run: |
+          SDKMANAGER=$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f | head -1)
+          "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Install official yt-dlp binary into project
+        run: |
+          mkdir -p app-project/app/src/main/res/raw
+          curl --retry 3 -fLsS 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp' -o app-project/app/src/main/res/raw/ytdlp
+          python3 app-project/app/src/main/res/raw/ytdlp --version | grep -qx '2026.10.26'
+      - name: Compile unsigned release APK
+        working-directory: app-project
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+      - name: Export APK plus Android SDK signing utility for offline private signing
+        run: |
+          set -eux
+          SDK=/usr/local/lib/android/sdk/build-tools/35.0.0
+          mkdir -p result/tooling
+          cp app-project/app/build/outputs/apk/release/app-release-unsigned.apk result/AudioOneTap-v1.5-unsigned.apk
+          cp "$SDK/lib/apksigner.jar" result/tooling/apksigner.jar
+          cp "$SDK/zipalign" result/tooling/zipalign
+          if [ -d "$SDK/lib64" ]; then cp -a "$SDK/lib64" result/tooling/; fi
+          python3 - <<'PYCODE'
+          import zipfile
+          p='result/AudioOneTap-v1.5-unsigned.apk'
+          with zipfile.ZipFile(p) as z:
+              names=set(z.namelist())
+              assert 'lib/arm64-v8a/libqjs.so' in names
+              assert 'res/raw/ytdlp' in names
+              assert 'classes.dex' in names
+          print('unsigned APK verified')
+          PYCODE
+      - name: Upload unsigned APK and signing utilities
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioOneTap-v1.5-unsigned-and-tools
+          path: result/
+          if-no-files-found: error
