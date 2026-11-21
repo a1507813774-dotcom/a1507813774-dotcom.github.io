@@ -1,0 +1,300 @@
+--- a/app/src/main/java/com/onec/audio/AudioService.java
++++ b/app/src/main/java/com/onec/audio/AudioService.java
+@@ -226,6 +226,7 @@
+             File result = file;
+             boolean compressedOk = false;
+             String fallbackReason = null;
++            String fallbackDetail = null;
+             compressing = true;
+             status("正在压缩为 32 kbps（可跳过并保留原音频）…", 76, true, null);
+             FutureTask<File> job = new FutureTask<>(() -> AudioTranscoder.convert(file, compressed, progress -> {
+@@ -243,6 +244,11 @@
+             transcoderThread = thread;
+             long beginMs = SystemClock.elapsedRealtime();
+             long previousHeartbeatMs = beginMs;
++            // Duration-aware deadline: three minutes was insufficient for long recordings.
++            long audioDurationMs = AudioTranscoder.audioDurationMs(file);
++            long hardLimitMs = Math.max(8 * 60_000L,
++                    Math.min(30 * 60_000L, audioDurationMs > 0
++                            ? audioDurationMs * 2L : 8 * 60_000L));
+             try {
+                 thread.start();
+                 while (true) {
+@@ -261,11 +267,12 @@
+                         break;
+                     } catch (TimeoutException waiting) {
+                         long elapsedMs = SystemClock.elapsedRealtime() - beginMs;
+-                        // Hard wall-clock cap. The inner MediaCodec loop also has a
+-                        // 20-second no-forward-progress timeout.
+-                        if (elapsedMs >= 180_000) {
++                        // The inner codec also has a 75-second no-forward-progress timeout.
++                        if (elapsedMs >= hardLimitMs) {
+                             job.cancel(true);
+-                            fallbackReason = "压缩超过 3 分钟，自动保留原音频";
++                            fallbackReason = "压缩超过安全时间限制，自动保留原音频";
++                            fallbackDetail = "sourceDurationMs=" + audioDurationMs +
++                                    "; hardLimitMs=" + hardLimitMs + "; elapsedMs=" + elapsedMs;
+                             break;
+                         }
+                         // Status heartbeat distinguishes a slow codec from a frozen UI.
+@@ -281,7 +288,9 @@
+                             if (cancelled) throw new InterruptedException("用户已取消");
+                             fallbackReason = "用户选择跳过压缩";
+                         } else {
+-                            fallbackReason = cause == null ? "设备转码器异常" : cause.toString();
++                            fallbackReason = cause == null ? "设备转码器异常"
++                                    : (cause.getMessage() == null ? cause.toString() : cause.getMessage());
++                            fallbackDetail = fullFailure(cause);
+                             Log.w("AudioOneTap", "AAC conversion failed, preserve audio", cause);
+                         }
+                         break;
+@@ -308,7 +317,8 @@
+                 result = file;
+                 if (cancelled) throw new InterruptedException("用户已取消");
+                 String reason = fallbackReason == null ? "设备无法完成转码" : fallbackReason;
+-                status("32 kbps 压缩未成功（" + reason + "），正在保存原音频…", 97, true, null);
++                status("32 kbps 压缩未成功（" + reason + "），正在保存原音频…",
++                        97, true, null, fallbackDetail == null ? reason : fallbackDetail);
+             }
+             if (cancelled) throw new InterruptedException("用户已取消");
+             status(compressedOk ? "正在保存 32 kbps 音频到下载目录…" : "正在保存原始音频到下载目录…", 98, true, null);
+@@ -316,7 +326,10 @@
+             getSharedPreferences("last_download", MODE_PRIVATE).edit()
+                     .putString("uri", saved.toString())
+                     .putString("name", result.getName()).apply();
+-            status((compressedOk ? "下载完成 · 32 kbps" : "下载完成 · 原始音轨（压缩失败）") + " · 可一键保存到 Drive · 下载/音频直取/" + result.getName(), 100, false, saved);
++            status((compressedOk ? "下载完成 · 32 kbps" : "下载完成 · 原始音轨（压缩失败，请复制错误日志）") +
++                    " · 可一键保存到 Drive · 下载/音频直取/" + result.getName(),
++                    100, false, saved, compressedOk ? null :
++                            (fallbackDetail == null ? fallbackReason : fallbackDetail));
+             notificationManager.notify(NOTIFICATION_ID, notification("音频已保存到下载目录", 100, false));
+         } catch (Exception e) {
+             String raw = e.getMessage() == null ? e.toString() : e.getMessage();
+@@ -335,6 +348,16 @@
+             stopForeground(STOP_FOREGROUND_DETACH);
+             stopSelfResult(startId);
+         }
++    }
++
++    private static String fullFailure(Throwable t) {
++        if (t == null) return "未知压缩错误";
++        StringBuilder out = new StringBuilder("音频压缩错误详情：\n");
++        for (int i = 0; t != null && i < 5; i++, t = t.getCause()) {
++            out.append(i).append(": ").append(t.getClass().getSimpleName())
++                    .append(": ").append(t.getMessage()).append('\n');
++        }
++        return out.toString();
+     }
+ 
+     private void tryUpdateEngine() {
+--- a/app/src/main/java/com/onec/audio/AudioTranscoder.java
++++ b/app/src/main/java/com/onec/audio/AudioTranscoder.java
+@@ -3,6 +3,7 @@
+ import android.media.AudioFormat;
+ import android.media.MediaCodec;
+ import android.media.MediaCodecInfo;
++import android.media.MediaCodecList;
+ import android.media.MediaExtractor;
+ import android.media.MediaFormat;
+ import android.media.MediaMuxer;
+@@ -10,6 +11,8 @@
+ import java.io.File;
+ import java.io.IOException;
+ import java.nio.ByteBuffer;
++import java.nio.ByteOrder;
++import java.util.Locale;
+ import android.os.SystemClock;
+ 
+ /** Transcode downloaded speech audio to mono AAC-LC at 32,000 bits/second.
+@@ -18,7 +21,7 @@
+ final class AudioTranscoder {
+     static final int TARGET_BITRATE = 32_000;
+     private static final long WAIT_US = 5_000;
+-    private static final long IDLE_LIMIT_MS = 20_000;
++    private static final long IDLE_LIMIT_MS = 75_000;
+     private static final String AAC_MIME = "audio/mp4a-latm";
+ 
+     interface Progress {
+@@ -26,6 +29,43 @@
+     }
+ 
+     static File convert(File source, File target, Progress progress) throws Exception {
++        // Prefer Android's generic software AAC encoder. Device-specific hardware
++        // encoders occasionally hang or reject low-bitrate mono output.
++        String software = findSoftwareEncoder();
++        Exception last = null;
++        String[] options = software == null ? new String[]{null} : new String[]{software, null};
++        for (int pass = 0; pass < options.length; pass++) {
++            if (Thread.currentThread().isInterrupted())
++                throw new InterruptedException("音频压缩已中断");
++            try {
++                return convertWithCodec(source, target, progress, options[pass]);
++            } catch (InterruptedException e) {
++                throw e;
++            } catch (Exception e) {
++                last = e;
++                if (target.exists()) target.delete();
++            }
++        }
++        throw new IOException("设备 AAC 编码器均未完成压缩（" +
++                (last == null ? "未知原因" : last.getMessage()) + "）", last);
++    }
++
++    private static String findSoftwareEncoder() {
++        try {
++            for (MediaCodecInfo codec : new MediaCodecList(MediaCodecList.REGULAR_CODECS).getCodecInfos()) {
++                if (!codec.isEncoder()) continue;
++                String name = codec.getName().toLowerCase(Locale.ROOT);
++                if (!(name.contains("google") || name.contains("android"))) continue;
++                for (String type : codec.getSupportedTypes()) {
++                    if (AAC_MIME.equalsIgnoreCase(type)) return codec.getName();
++                }
++            }
++        } catch (Exception ignored) { }
++        return null;
++    }
++
++    private static File convertWithCodec(File source, File target, Progress progress,
++                                         String encoderName) throws Exception {
+         MediaExtractor extractor = new MediaExtractor();
+         MediaCodec decoder = null;
+         MediaCodec encoder = null;
+@@ -63,7 +103,9 @@
+                     MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+             outputFormat.setInteger(MediaFormat.KEY_BIT_RATE, TARGET_BITRATE);
+             outputFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16 * 1024);
+-            encoder = MediaCodec.createEncoderByType(AAC_MIME);
++            encoder = encoderName != null
++                    ? MediaCodec.createByCodecName(encoderName)
++                    : MediaCodec.createEncoderByType(AAC_MIME);
+             encoder.configure(outputFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+             encoder.start();
+ 
+@@ -79,6 +121,7 @@
+             int muxerTrack = -1;
+             int lastProgress = -1;
+             int channels = inputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
++            int pcmEncoding = AudioFormat.ENCODING_PCM_16BIT;
+             int pcmRate = sourceRate;
+             long lastForwardMs = SystemClock.elapsedRealtime();
+ 
+@@ -88,7 +131,7 @@
+                 if (Thread.currentThread().isInterrupted())
+                     throw new InterruptedException("音频压缩已中断");
+                 if (SystemClock.elapsedRealtime() - lastForwardMs > IDLE_LIMIT_MS)
+-                    throw new IOException("压缩引擎超过 20 秒没有处理任何音频数据");
++                    throw new IOException("压缩引擎超过 75 秒没有处理任何音频数据");
+ 
+                 // Never flood decoder inputs when a decoded chunk is waiting to be encoded.
+                 if (!decoderInputEnded && pendingMono == null) {
+@@ -151,16 +194,22 @@
+                         int actualRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                         if (actualRate != sourceRate)
+                             throw new IOException("音轨采样率在解码过程中发生变化，无法安全转码");
+-                        if (format.containsKey(MediaFormat.KEY_PCM_ENCODING) &&
+-                                format.getInteger(MediaFormat.KEY_PCM_ENCODING) != AudioFormat.ENCODING_PCM_16BIT)
+-                            throw new IOException("输入音频解码器未输出 16 位 PCM");
++                        pcmEncoding = format.containsKey(MediaFormat.KEY_PCM_ENCODING)
++                                ? format.getInteger(MediaFormat.KEY_PCM_ENCODING)
++                                : AudioFormat.ENCODING_PCM_16BIT;
++                        if (pcmEncoding != AudioFormat.ENCODING_PCM_16BIT &&
++                            pcmEncoding != AudioFormat.ENCODING_PCM_FLOAT &&
++                            pcmEncoding != AudioFormat.ENCODING_PCM_8BIT &&
++                            pcmEncoding != AudioFormat.ENCODING_PCM_24BIT_PACKED &&
++                            pcmEncoding != AudioFormat.ENCODING_PCM_32BIT)
++                            throw new IOException("解码器返回不支持的 PCM 格式：" + pcmEncoding);
+                     } else if (o >= 0) {
+                         ByteBuffer buffer = decoder.getOutputBuffer(o);
+                         if (decoded.size > 0) {
+                             if (buffer == null) throw new IOException("解码后的音频不可读取");
+                             buffer.position(decoded.offset);
+                             buffer.limit(decoded.offset + decoded.size);
+-                            pendingMono = downmixToMono(buffer, channels);
++                            pendingMono = downmixToMono(buffer, channels, pcmEncoding);
+                             lastForwardMs = SystemClock.elapsedRealtime();
+                         }
+                         boolean eos = (decoded.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
+@@ -273,21 +322,47 @@
+         return 0;
+     }
+ 
+-    private static ByteBuffer downmixToMono(ByteBuffer samples, int channels) throws IOException {
++    private static ByteBuffer downmixToMono(ByteBuffer samples, int channels,
++                                            int encoding) throws IOException {
+         if (channels < 1 || channels > 8) throw new IOException("不支持的声道数：" + channels);
+-        final int frameBytes = channels * 2;
+-        final int frames = samples.remaining() / frameBytes;
+-        ByteBuffer mono = ByteBuffer.allocate(frames * 2);
++        // MediaCodec PCM output on Android is little endian, including float PCM.
++        samples.order(ByteOrder.LITTLE_ENDIAN);
++        final int bytes = encoding == AudioFormat.ENCODING_PCM_FLOAT ||
++                encoding == AudioFormat.ENCODING_PCM_32BIT ? 4 :
++                encoding == AudioFormat.ENCODING_PCM_24BIT_PACKED ? 3 :
++                encoding == AudioFormat.ENCODING_PCM_8BIT ? 1 : 2;
++        final int frames = samples.remaining() / (channels * bytes);
++        ByteBuffer mono = ByteBuffer.allocate(frames * 2).order(ByteOrder.LITTLE_ENDIAN);
+         for (int i = 0; i < frames; i++) {
+-            int sum = 0;
++            long sum = 0;
+             for (int ch = 0; ch < channels; ch++) {
+-                int lo = samples.get() & 255;
+-                int hi = samples.get();
+-                sum += (short) ((hi << 8) | lo);
+-            }
+-            short mixed = (short) (sum / channels);
+-            mono.put((byte) (mixed & 255));
+-            mono.put((byte) ((mixed >> 8) & 255));
++                int pcm;
++                switch (encoding) {
++                    case AudioFormat.ENCODING_PCM_FLOAT: {
++                        float f = samples.getFloat();
++                        if (!Float.isFinite(f)) f = 0f;
++                        pcm = Math.round(Math.max(-1f, Math.min(1f, f)) * 32767f);
++                        break;
++                    }
++                    case AudioFormat.ENCODING_PCM_8BIT:
++                        pcm = ((samples.get() & 0xff) - 128) << 8;
++                        break;
++                    case AudioFormat.ENCODING_PCM_24BIT_PACKED: {
++                        int raw = (samples.get() & 0xff) |
++                                ((samples.get() & 0xff) << 8) | (samples.get() << 16);
++                        pcm = raw >> 8;
++                        break;
++                    }
++                    case AudioFormat.ENCODING_PCM_32BIT:
++                        pcm = samples.getInt() >> 16;
++                        break;
++                    default:
++                        pcm = samples.getShort();
++                }
++                sum += pcm;
++            }
++            int mixed = (int)(sum / channels);
++            mono.putShort((short)Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, mixed)));
+         }
+         mono.flip();
+         return mono;
+--- a/app/src/main/java/com/onec/audio/MainActivity.java
++++ b/app/src/main/java/com/onec/audio/MainActivity.java
+@@ -129,7 +129,7 @@
+         LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(dp(88), dp(88));
+         logoParams.bottomMargin = dp(24);
+         outer.addView(insignia, logoParams);
+-        outer.addView(label("音频直取 · 1.7", 30, TEXT, Typeface.BOLD));
++        outer.addView(label("音频直取 · 1.8", 30, TEXT, Typeface.BOLD));
+         TextView subheading = label("优先直连 · 双重完整性校验 · 32 kbps · 保存到 Drive", 15, MUTED, Typeface.NORMAL);
+         LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
+         subParams.topMargin = dp(10);
+--- a/app/build.gradle
++++ b/app/build.gradle
+@@ -10,8 +10,8 @@
+         applicationId 'com.onec.audiodirect'
+         minSdk 29
+         targetSdk 35
+-        versionCode 8
+-        versionName '1.7.0'
++        versionCode 9
++        versionName '1.8.0'
+     }
+     buildTypes {
+         release { minifyEnabled false }
