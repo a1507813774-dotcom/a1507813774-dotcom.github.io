@@ -1,4 +1,4 @@
-name: Build AudioOneTap v1.5 unsigned APK and signing tools
+name: Build AudioOneTap v1.5 base APK and signing tools
 on:
   push:
     branches: [build-audio-onetap-v15-recovery]
@@ -37,27 +37,27 @@ jobs:
           mkdir -p app-project/app/src/main/res/raw
           curl --retry 3 -fLsS 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp' -o app-project/app/src/main/res/raw/ytdlp
           python3 app-project/app/src/main/res/raw/ytdlp --version | grep -qx '2026.10.26'
-      - name: Compile unsigned release APK
+      - name: Compile Android APK
         working-directory: app-project
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
       - name: Export APK plus Android SDK signing utility for offline private signing
         run: |
           set -eux
           SDK=/usr/local/lib/android/sdk/build-tools/35.0.0
           mkdir -p result/tooling
-          cp app-project/app/build/outputs/apk/release/app-release-unsigned.apk result/AudioOneTap-v1.5-unsigned.apk
+          cp app-project/app/build/outputs/apk/debug/app-debug.apk result/AudioOneTap-v1.5-base.apk
           cp "$SDK/lib/apksigner.jar" result/tooling/apksigner.jar
           cp "$SDK/zipalign" result/tooling/zipalign
           if [ -d "$SDK/lib64" ]; then cp -a "$SDK/lib64" result/tooling/; fi
           python3 - <<'PYCODE'
           import zipfile
-          p='result/AudioOneTap-v1.5-unsigned.apk'
+          p='result/AudioOneTap-v1.5-base.apk'
           with zipfile.ZipFile(p) as z:
               names=set(z.namelist())
               assert 'lib/arm64-v8a/libqjs.so' in names
               assert 'res/raw/ytdlp' in names
               assert 'classes.dex' in names
-          print('unsigned APK verified')
+          print('base APK verified')
           PYCODE
       - name: Upload unsigned APK and signing utilities
         uses: actions/upload-artifact@v4
