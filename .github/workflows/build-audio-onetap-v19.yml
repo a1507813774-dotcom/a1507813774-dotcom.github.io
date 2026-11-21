@@ -60,3 +60,5 @@ jobs:
           name: AudioOneTap-v1.9-base
           path: result/AudioOneTap-v1.9-base.apk
           if-no-files-found: error
+
+# Build based on verified v1.8 audio download path
