@@ -1,0 +1,65 @@
+name: Build AudioOneTap v1.8 speed and integrity APK
+on:
+  push:
+    branches: [build-audio-onetap-v18-speed-integrity]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Prepare v1.8 sources and assert upgrade compatibility
+        run: |
+          unzip -q source/AudioOneTap-v1.6-source.zip
+          mv AudioOneTap_v1_6_Source app-project
+          python3 scripts/audio_v17_hotfix.py
+          (cd app-project && git apply --check ../scripts/audio_v18_stability.patch && git apply ../scripts/audio_v18_stability.patch)
+          grep -q 'versionCode 9' app-project/app/build.gradle
+          grep -q 'versionName .1.8.0.' app-project/app/build.gradle
+          grep -q 'applicationId .com.onec.audiodirect.' app-project/app/build.gradle
+          grep -q 'AO_DURATION' app-project/app/src/main/java/com/onec/audio/AudioService.java
+          mkdir -p result
+          (cd app-project && zip -qr ../result/AudioOneTap-v1.8-source.zip .)
+      - name: Install SDK
+        run: |
+          SDKMANAGER=$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f | head -1)
+          "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Bundle official yt-dlp
+        run: |
+          mkdir -p app-project/app/src/main/res/raw
+          curl --retry 3 -fLsS 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp' -o app-project/app/src/main/res/raw/ytdlp
+          python3 app-project/app/src/main/res/raw/ytdlp --version | grep -qx '2026.10.26'
+      - name: Compile Android APK
+        working-directory: app-project
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Export APK and offline signing tools
+        run: |
+          set -eux
+          SDK=/usr/local/lib/android/sdk/build-tools/35.0.0
+          mkdir -p result/tooling
+          cp app-project/app/build/outputs/apk/debug/app-debug.apk result/AudioOneTap-v1.8-base.apk
+          cp "$SDK/lib/apksigner.jar" result/tooling/apksigner.jar
+          python3 - <<'PYCODE'
+          import zipfile
+          with zipfile.ZipFile('result/AudioOneTap-v1.8-base.apk') as z:
+              assert 'lib/arm64-v8a/libqjs.so' in z.namelist()
+              assert 'res/raw/ytdlp' in z.namelist()
+              assert 'classes.dex' in z.namelist()
+          print("v1.8 APK structure valid")
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AudioOneTap-v1.8-APK-and-source
+          path: result/
+          if-no-files-found: error
